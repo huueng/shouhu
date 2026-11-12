@@ -20,7 +20,7 @@ import (
 
 // Version 由构建脚本用 -ldflags "-X main.Version=x.y.z" 注入（见 tools/build-fpk.sh、tools/publish-update.sh）；
 // 源码里的值只是本地直接 go build 时的默认值。
-var Version = "1.15.0"
+var Version = "1.15.1"
 
 func envOr(k, def string) string {
 	if v := os.Getenv(k); v != "" {
@@ -421,7 +421,10 @@ h1{font-size:22px;font-weight:600;margin:0 0 4px}
 .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px}
 h2{font-size:15px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:8px}
 h2 .tag{font-size:11px;font-weight:400;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:1px 8px}
-.qr{display:block;width:320px;max-width:86vw;height:auto;aspect-ratio:1/1;border-radius:8px;background:#fff;border:1px solid var(--line);padding:8px;margin:0 auto 14px;image-rendering:pixelated}
+.qr{display:block;width:400px;max-width:86vw;height:auto;aspect-ratio:1/1;border-radius:8px;background:#fff;border:1px solid var(--line);padding:8px;margin:0 auto 14px;image-rendering:pixelated;cursor:zoom-in}
+.qrmask{position:fixed;inset:0;z-index:99;background:#fff;display:none;align-items:center;justify-content:center;cursor:zoom-out}
+.qrmask.on{display:flex}
+.qrmask img{width:92vmin;height:92vmin;image-rendering:pixelated}
 .kv{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:6px 0}
 .kv .k{color:var(--muted);flex:0 0 62px}
 .kv .v{flex:1;word-break:break-all}
@@ -601,13 +604,14 @@ func (s *Store) handleDevicePage(w http.ResponseWriter, r *http.Request) {
 
 	if hasBase {
 		b.WriteString(`<div class="card"><h2>家人端<span class="tag">扫码添加</span></h2>`)
-		b.WriteString(`<img class="qr" src="api/qr?t=family&k=` + tok + `" alt="家人端二维码">`)
+		b.WriteString(`<img class="qr" src="api/qr?t=family&k=` + tok + `" alt="家人端二维码" onclick="zoomQr(this)">`)
 		b.WriteString(`<div class="kv"><span class="k">地址</span><span class="v"><code>` + html.EscapeString(base) + `</code></span></div>`)
 		b.WriteString(`<div class="kv"><span class="k">令牌</span><span class="v"><code>` + tok + `</code></span></div>`)
-		b.WriteString(`<div class="tip">把这张截图发给家人，用家人端 App 扫一下就会自动配好；也可以直接把这个地址发给他。</div></div>`)
+		b.WriteString(`<div class="tip">这张码内容长（带协议头和称呼），点一下可以全屏放大，对着屏幕拍更清楚；` +
+			`拍不下来就截图，用家人端的「从相册选图」。</div></div>`)
 
 		b.WriteString(`<div class="card"><h2>老人端<span class="tag">扫码或粘贴</span></h2>`)
-		b.WriteString(`<img class="qr" src="api/qr?t=elder&k=` + tok + `" alt="老人端二维码">`)
+		b.WriteString(`<img class="qr" src="api/qr?t=elder&k=` + tok + `" alt="老人端二维码" onclick="zoomQr(this)">`)
 		b.WriteString(`<div class="kv"><span class="k">上报地址</span><span class="v"><code>` + html.EscapeString(reportURL) + `</code></span></div>`)
 		b.WriteString(`<div class="tip">老人端「设置 → 定位和传输 → 主动上报」点「扫一扫」扫这个码即可；也能粘贴地址，间隔选 10 分钟。</div></div>`)
 	} else {
@@ -634,6 +638,8 @@ func (s *Store) handleDevicePage(w http.ResponseWriter, r *http.Request) {
 	}
 	b.WriteString(`</div>`)
 
+	b.WriteString(`<div class="qrmask" id="qrmask" onclick="this.classList.remove('on')"><img id="qrimg" alt=""></div>`)
+
 	b.WriteString(`<div class="card warn"><h2>注意</h2><div class="tip">`)
 	b.WriteString(`这个链接等同于这位老人的凭证，别转给不相关的人。<br>`)
 	b.WriteString(`重新生成令牌后，老人端和家人端都要重新扫码。`)
@@ -644,6 +650,12 @@ func (s *Store) handleDevicePage(w http.ResponseWriter, r *http.Request) {
 	b.WriteString(`<button class="btn danger" onclick="resetToken()">重新生成令牌</button></div></div>`)
 
 	fmt.Fprintf(&b, `</div><script>
+function zoomQr(el){
+  var m=document.getElementById('qrmask');
+  if(!m)return;
+  document.getElementById('qrimg').src=el.src;
+  m.classList.add('on');
+}
 function delFence(id){
   if(!confirm('删除这个围栏？'))return;
   fetch('api/fence?id='+encodeURIComponent(id)+'&k=%s',{method:'DELETE'})
