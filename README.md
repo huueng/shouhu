@@ -200,8 +200,18 @@ tools/provision.ps1 -All
 
 ## 致谢与许可
 
-- 中继的二维码生成用 [skip2/go-qrcode](https://github.com/skip2/go-qrcode)
-- 地图与地理编码用的是各家公开服务（高德 URI、Open-Meteo 天气），只发必要参数
+- 中继的二维码生成用 [skip2/go-qrcode](https://github.com/skip2/go-qrcode)（MIT）
+- 地图用 [Leaflet](https://leafletjs.com/)（BSD-2-Clause），地理编码与天气走公开服务
+- Android 侧依赖 androidx 与 zxing（Apache-2.0）
 - 打包与设备管理思路参考了 OpenWrt 社区和一堆"给老人做手机"的踩坑帖
 
-以 **MIT** 协议开源，见 [LICENSE](LICENSE)。商用、二次分发都可以，出问题自己担。
+以 **GNU GPL v3.0** 发布，全文见 [LICENSE](LICENSE)。简单说：
+
+- 你可以随便用、随便改、拿去给自己家老人装，甚至商用；
+- 但你**分发**出去的版本（包括改过的、打包进硬件卖的）必须同样以 GPL 开源，并且让别人能装上他们自己改的版本；
+- 这和项目本身的立场是一致的：谁都不该被一把锁关在自己的设备外面。
+
+> 如果你是想把它做成闭源产品或托管服务来卖，这份协议不允许——请另找授权方式，或者自己从头写。
+
+（不是法律意见；有商业打算请找律师看一眼。）
+
