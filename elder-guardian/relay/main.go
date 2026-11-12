@@ -20,7 +20,7 @@ import (
 
 // Version 由构建脚本用 -ldflags "-X main.Version=x.y.z" 注入（见 tools/build-fpk.sh、tools/publish-update.sh）；
 // 源码里的值只是本地直接 go build 时的默认值。
-var Version = "1.15.1"
+var Version = "1.15.2"
 
 func envOr(k, def string) string {
 	if v := os.Getenv(k); v != "" {

@@ -123,8 +123,35 @@ jobs:
           name: ipk
           path: dist/*.ipk
 
+  # 飞牛（fnOS）要的是 .fpk，不是 ipk：飞牛主机是 x86_64，包里装的是 linux/amd64 二进制。
+  # build-fpk.sh 会自己编译 amd64、生成图标、算 app.tgz 的 md5 写进 manifest。
+  fpk:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/relay-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: elder-guardian/relay/go.sum
+      - name: 打飞牛 fpk
+        run: |
+          V="${GITHUB_REF_NAME#relay-v}"
+          bash tools/build-fpk.sh "$V"
+      - name: 自检包结构
+        run: |
+          f=$(ls dist/*.fpk | head -1)
+          tar -tzf "$f" | sort
+          tar -xzOf "$f" manifest | grep -E '^(version|checksum)='
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fpk
+          path: dist/*.fpk
+          if-no-files-found: error
+
   release:
-    needs: [build, ipk]
+    needs: [build, ipk, fpk]
     if: startsWith(github.ref, 'refs/tags/relay-v')
     runs-on: ubuntu-latest
     steps:
@@ -138,6 +165,7 @@ jobs:
             cp "$f" "out/$(basename "$f")"
           done
           cp artifacts/ipk/*.ipk out/ 2>/dev/null || true
+          cp artifacts/fpk/*.fpk out/ 2>/dev/null || true
           ls -lh out
       - uses: softprops/action-gh-release@v2
         with:
@@ -151,7 +179,9 @@ jobs:
 
             | 文件 | 用在哪 |
             |---|---|
-            | `relay-amd64` / `relay-arm64` | 服务器、NAS、树莓派（裸二进制） |
-            | `elderrelay_*_aarch64_cortex-a53.ipk` | 飞牛 / 路由器的 aarch64 |
-            | `elderrelay_*_mipsel_24kc.ipk` | MT7628 / MT7620 / MT7621 路由器 |
+            | `elderrelay-*.fpk` | **飞牛 fnOS（x86_64）**，在飞牛应用中心/命令行安装 |
+            | `elderrelay_*_aarch64_cortex-a53.ipk` | aarch64 路由器（RAX3000M、ImmortalWrt 等） |
+            | `elderrelay_*_mipsel_24kc.ipk` | MT7628 / MT7620 / MT7621 路由器（小米 R1C/R1CL、K2、K2P A1A2） |
             | `elderrelay_*_arm_cortex-a7_neon-vfpv4.ipk` | 斐讯 K2P B1 这类 ARMv7 |
+            | `relay-amd64` / `relay-arm64` | 裸二进制：服务器、飞牛（不用 fpk 时）、树莓派、Docker 自建 |
+            | `relay-arm` / `relay-mipsle` | 裸二进制：ARMv7 / MIPS 小设备 |
