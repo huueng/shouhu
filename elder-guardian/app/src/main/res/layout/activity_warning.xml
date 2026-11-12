@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:gravity="center"
+    android:background="#FFE0E0E0">
+
+    <TextView
+        android:id="@+id/warn_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="32sp"
+        android:textColor="#FFD32F2F"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/warn_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textColor="#FF212121"
+        android:lineSpacingExtra="8dp"
+        android:gravity="center_horizontal"
+        android:layout_marginBottom="48dp" />
+
+    <Button
+        android:id="@+id/warn_confirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:background="#FF2196F3"
+        android:textColor="#FFFFFFFF"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/warn_cancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:background="#FF9E9E9E"
+        android:textColor="#FFFFFFFF" />
+
+</LinearLayout>

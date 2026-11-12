@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#1976D2</color>
+    <color name="colorAccent">#FF9800</color>
+    <color name="elder_background">#F5F5F5</color>
+    <!-- 状态栏底色：浅色模式白、深色模式黑（见 values-night/colors.xml）。
+         之前没定义，系统就退回 colorPrimaryDark（#1976D2 蓝），
+         于是开了锁定/隐藏状态栏之后顶上露出蓝色那一条。 -->
+    <color name="elder_statusbar">#FFFFFFFF</color>
+    <color name="elder_card_bg">#FFFFFF</color>
+    <color name="elder_card_pressed">#E3F2FD</color>
+    <color name="elder_text_primary">#212121</color>
+    <color name="elder_text_secondary">#757575</color>
+    <color name="elder_divider">#E0E0E0</color>
+    <color name="elder_warning">#D32F2F</color>
+    <color name="elder_ok">#388E3C</color>
+    <!-- 电量条填充三档：日间夜间共用同一组饱和色。
+         大色块不是文字，不用"深色模式变浅"那套，否则 25% 会变成粉红、看着不像警告。 -->
+    <color name="battery_low">#E53935</color>
+    <color name="battery_mid">#FB8C00</color>
+    <color name="battery_high">#43A047</color>
+    <color name="elder_disabled">#BDBDBD</color>
+</resources>

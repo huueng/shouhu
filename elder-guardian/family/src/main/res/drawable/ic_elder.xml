@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 守护同步端图标：一位拄拐老人（浅色圆底 + 深色剪影） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF2E7D5B"
+        android:pathData="M0,0h108v108h-108z" />
+    <!-- 头 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M46,30m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0" />
+    <!-- 身体（略微前倾） -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M46,42c-9,0 -16,7 -16,16v10h10v-8h4l2,26h9l-2,-28c0,-6 -3,-11 -7,-14z" />
+    <!-- 拐杖 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M70,52h4v34h-4z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M64,52h10v4h-10z" />
+    <!-- 腿 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M58,78h8v12h-8z" />
+</vector>

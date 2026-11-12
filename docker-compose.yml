@@ -1,0 +1,35 @@
+# 守护中继 · Docker Compose
+#
+#   docker compose up -d          # 首次会自己构建镜像
+#   docker compose logs -f        # 看日志
+#   docker compose pull && docker compose up -d   # 升级
+#
+# 配置和数据都在 ./relay-data 里（config.json / points.jsonl），删容器不删数据。
+
+services:
+  relay:
+    image: shouhu-relay:latest
+    build:
+      context: ./elder-guardian/relay
+      args:
+        VERSION: "1.14.1"
+    container_name: shouhu-relay
+    restart: unless-stopped
+    ports:
+      - "8898:8898"
+    volumes:
+      # 宿主机目录：备份、迁移直接拷这个目录
+      - ./relay-data:/data
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8898/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"

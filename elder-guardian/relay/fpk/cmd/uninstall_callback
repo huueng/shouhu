@@ -1,0 +1,16 @@
+#!/bin/bash
+# 卸载后：确认进程已退出。数据目录由系统按用户选择处理，这里不主动删。
+set -u
+
+PKGVAR="${TRIM_PKGVAR:-/var/apps/elderrelay/var}"
+PID_FILE="${PKGVAR}/app.pid"
+
+if [ -f "${PID_FILE}" ]; then
+  PID="$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')"
+  if [ -n "${PID}" ] && kill -0 "${PID}" 2>/dev/null; then
+    kill -TERM "${PID}" 2>/dev/null || true
+  fi
+  rm -f "${PID_FILE}" 2>/dev/null || true
+fi
+
+exit 0

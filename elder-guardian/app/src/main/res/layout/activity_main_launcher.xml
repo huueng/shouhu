@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  主界面：标题行 + 2 列图标网格
+  用垂直 LinearLayout + weight 排布，避免固定 marginTop 在不同状态栏高度下错位
+  （老版本是 FrameLayout + 80dp 固定上边距，状态栏显示时会压住第一行卡片）
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/launcher_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/elder_background">
+
+    <!-- 顶部：时间 / 星期 / 农历·节气（连点 8 次进设置，长按解除屏幕固定） -->
+    <LinearLayout
+        android:id="@+id/launcher_logo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="14dp"
+        android:paddingBottom="10dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="20dp"
+        android:gravity="center_vertical"
+        android:clickable="true"
+        android:focusable="true">
+
+        <!-- 时间区：整块可点（时间 + 日期 + 农历）。
+             以前只有「时间」那 118×54dp 能点，点日期和农历毫无反应，
+             老人会以为是坏了；整块 134×101dp，点哪儿都念时间，也够连点进设置。 -->
+        <LinearLayout
+            android:id="@+id/launcher_time_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:minHeight="48dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/launcher_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="08:00"
+                android:textSize="46sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:textColor="@color/elder_text_primary" />
+
+            <TextView
+                android:id="@+id/launcher_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1月1日 星期一"
+                android:textSize="18sp"
+                android:paddingTop="2dp"
+                android:textColor="@color/elder_text_primary" />
+
+            <TextView
+                android:id="@+id/launcher_lunar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="14sp"
+                android:paddingTop="2dp"
+                android:textColor="@color/elder_text_secondary" />
+
+        </LinearLayout>
+
+        <!-- 电量：竖条，屏幕正中（时间与天气之间）。点一下念电量和信号。
+             高度 62dp + 百分比一行 17dp ≈ 79dp，仍在时间块 98dp 之内，不会顶开整行。 -->
+        <LinearLayout
+            android:id="@+id/launcher_battery_box"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <com.elder.launcher.BatteryBarView
+                android:id="@+id/launcher_battery_bar"
+                android:layout_width="22dp"
+                android:layout_height="62dp" />
+
+            <TextView
+                android:id="@+id/launcher_battery_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="--"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:gravity="center"
+                android:textColor="@color/elder_text_primary" />
+
+        </LinearLayout>
+
+        <!-- 右侧：天气两块 + 信号，一块一块分开点
+             触摸区按实测调过：原来只有「20°」那 103×40dp 可点，「晴朗」点不动；
+             信号行更是只有 42×21dp，老人手指压上去基本点空。 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end|center_vertical"
+            android:paddingStart="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp">
+
+            <!-- 天气：图标+温度 / 天气词，整块可点，最小 48dp 高 -->
+            <LinearLayout
+                android:id="@+id/launcher_weather_box"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end|center_vertical"
+                android:minHeight="48dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/launcher_weather"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="34sp"
+                    android:textStyle="bold"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textColor="@color/elder_text_primary" />
+
+                <TextView
+                    android:id="@+id/launcher_weather_desc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="15sp"
+                    android:paddingTop="3dp"
+                    android:maxLines="1"
+                    android:gravity="end"
+                    android:textColor="@color/elder_text_secondary" />
+
+            </LinearLayout>
+
+            <!-- 信号：4 格条 + 运营商名，点一下念信号；最小 48dp 高，别让老人点空 -->
+            <LinearLayout
+                android:id="@+id/launcher_signal_row"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical|end"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp">
+
+                <com.elder.launcher.SignalBarsView
+                    android:id="@+id/launcher_signal_bars"
+                    android:layout_width="24dp"
+                    android:layout_height="14dp"
+                    android:layout_marginEnd="5dp" />
+
+                <TextView
+                    android:id="@+id/launcher_signal_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:maxLines="1"
+                    android:textColor="@color/elder_text_secondary" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 图标网格 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/launcher_grid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="4dp"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
+
+</LinearLayout>

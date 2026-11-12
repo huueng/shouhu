@@ -1,0 +1,13 @@
+#!/bin/bash
+# 卸载前：先停服务，避免进程占着文件导致卸载卡住
+set -u
+
+CMD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKGVAR="${TRIM_PKGVAR:-/var/apps/elderrelay/var}"
+
+"${CMD_DIR}/main" stop >/dev/null 2>&1 || true
+
+echo "令牌与数据保留在 ${PKGVAR}，如不再需要可手动删除。" \
+  >"${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+
+exit 0

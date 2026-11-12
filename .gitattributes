@@ -1,0 +1,18 @@
+# 统一换行：源码用 LF（OpenWrt / Docker / CI 都在 Linux 上跑），
+# Windows 脚本保持 CRLF。
+* text=auto eol=lf
+*.sh   text eol=lf
+*.py   text eol=lf
+*.go   text eol=lf
+*.java text eol=lf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+
+# 二进制
+*.png binary
+*.jpg binary
+*.jar binary
+*.apk binary
+*.exe binary
+*.ipk binary
+*.fpk binary

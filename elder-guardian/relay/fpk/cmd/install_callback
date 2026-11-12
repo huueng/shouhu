@@ -1,0 +1,17 @@
+#!/bin/bash
+# 安装后：确保目录存在，打印提示
+set -u
+
+APP_NAME="elderrelay"
+PKGVAR="${TRIM_PKGVAR:-/var/apps/${APP_NAME}/var}"
+APPDEST="${TRIM_APPDEST:-/var/apps/${APP_NAME}/target}"
+
+mkdir -p "${PKGVAR}" 2>/dev/null || true
+for c in "${APPDEST}/elderrelay" "${APPDEST}/app/elderrelay"; do
+  [ -f "$c" ] && chmod 755 "$c" 2>/dev/null || true
+done
+
+echo "守护中继已安装。令牌位于 ${PKGVAR}/config.json（首次启动后生成），默认端口 8898。" \
+  >"${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+
+exit 0

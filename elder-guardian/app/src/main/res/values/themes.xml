@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.ElderLauncher" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/elder_background</item>
+        <item name="android:textColorPrimary">@color/elder_text_primary</item>
+        <item name="android:textColorSecondary">@color/elder_text_secondary</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- 状态栏跟着深浅色走：浅色=白底深图标，深色=黑底浅图标。
+             不写这两行时系统会拿 colorPrimaryDark 当状态栏色，
+             那是个蓝色，锁定时状态栏被隐藏后顶部会留下一条蓝边。 -->
+        <item name="android:statusBarColor">@color/elder_statusbar</item>
+        <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/light_system_bars</item>
+    </style>
+
+    <style name="Theme.ElderLauncher.FullScreen">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/elder_background</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+    </style>
+
+</resources>

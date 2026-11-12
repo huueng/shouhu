@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.elder.launcher">
+
+    <!-- ===== 普通运行时权限 ===== -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- 锁屏/后台被家人查询位置时需要（Android 10+） -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- 来电响铃挂断触发定位 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.DIAL_PHONE" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <!-- 短信只读页：只用来显示，不上传不发送 -->
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 远程调音量：家人端能帮老人把声音调回来（老人常把媒体音量按到 0） -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 网页传包要把文件存到公共「下载」目录（Android 10 及以下） -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- ===== WiFi 与系统设置 ===== -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ===== 系统签名/DeviceOwner 权限 ===== -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+
+    <!-- ===== Android 13+ ===== -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ===== 查询所有包 ===== -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- ===== 特性声明 ===== -->
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <!-- 允许查看已安装包 -->
+    <queries>
+        <package android:name="com.tencent.mm" />
+        <package android:name="com.tencent.mobileqq" />
+        <package android:name="com.eg.android.AlipayGphone" />
+        <package android:name="com.android.mms" />
+        <package android:name="com.google.android.apps.messaging" />
+        <package android:name="com.android.dialer" />
+        <package android:name="com.google.android.dialer" />
+        <package android:name="com.android.phone" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".ElderApp"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
+        android:supportsRtl="true"
+        android:label="@string/app_name"
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:theme="@style/Theme.ElderLauncher"
+        android:largeHeap="true"
+        android:hardwareAccelerated="true"
+        tools:targetApi="h">
+
+        <!-- ===== 首次启动警告屏（应用图标入口）===== -->
+        <activity
+            android:name=".ModeChooseActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".WarningActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ElderLauncher.FullScreen"
+            android:noHistory="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ===== 首次设置向导 ===== -->
+        <activity
+            android:name=".FirstSetupActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <!-- ===== 主 Launcher 界面（同时作为 HOME）===== -->
+        <activity
+            android:name=".MainLauncherActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ElderLauncher"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:stateNotNeeded="true"
+            android:directBootAware="true"
+            android:clearTaskOnLaunch="false"
+            android:finishOnTaskLaunch="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- ===== 桌面图标管理（家人）===== -->
+        <activity
+            android:name=".AddAppActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <!-- ===== 电话墙（大头像联系人卡片）===== -->
+        <activity
+            android:name=".CallWallActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <!-- ===== 无线网络（防误触）===== -->
+        <activity
+            android:name=".SmsInboxActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <activity
+            android:name=".WifiActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <!-- ===== 联系人卡片管理 ===== -->
+        <activity
+            android:name=".ContactManageActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <!-- ===== 家人设置页（隐藏入口）===== -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <!-- ===== 守护自检 ===== -->
+        <activity
+            android:name=".GuardianCheckActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ElderLauncher" />
+
+        <!-- ===== Device Admin Receiver ===== -->
+        <receiver
+            android:name=".ElderDeviceAdminReceiver"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+                <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
+                <action android:name="android.app.action.ENTER_DEVICE_MONITORING_MODE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ===== 开机广播 ===== -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ===== 通知白名单监听器 ===== -->
+        <service
+            android:name=".ElderNotificationListener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.notificationlistener"
+                android:resource="@xml/device_notification_listener_settings" />
+        </service>
+
+        <!-- ===== 整点报时 / 杀后台 / 天气定时 ===== -->
+        <receiver
+            android:name=".HourlyChimeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elder.launcher.ACTION_HOURLY_CHIME" />
+                <action android:name="com.elder.launcher.ACTION_DAILY_WEATHER" />
+                <action android:name="com.elder.launcher.ACTION_PERIODIC_KILL" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ===== 短信定位指令（家人发「位置」触发）===== -->
+        <receiver
+            android:name=".AdminCommandReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.elder.launcher.ADMIN" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".SmsCommandReceiver"
+            android:exported="true">
+            <intent-filter android:priority="1000">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ===== 响铃挂断触发定位 ===== -->
+        <receiver
+            android:name=".CallTriggerReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ===== 短时定位取点服务 ===== -->
+        <service
+            android:name=".FastLinkService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <service
+            android:name=".LocationFetchService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- ===== 定位服务：老人机当服务器，家人端拉 JSON ===== -->
+        <service
+            android:name=".LocateServer"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- ===== 主动上报 / 检查更新（定时） ===== -->
+        <receiver
+            android:name=".ReportUploader$ReportReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elder.launcher.REPORT_TICK" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".UpdateChecker$UpdateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elder.launcher.UPDATE_TICK" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ===== 轨迹采样：每 10 分钟看一次，动了才记点 ===== -->
+        <receiver
+            android:name=".TrackReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elder.launcher.TRACK_TICK" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ===== DDNS：把变化的公网 IPv6 同步到固定域名 ===== -->
+        <service
+            android:name=".DdnsService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- ===== 局域网网页传包（默认关，10 分钟自动关） ===== -->
+        <service
+            android:name=".FileTransferServer"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- 传包收到的文件要用 FileProvider 才能交给安装器 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.elder.launcher.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- ===== 悬浮导航按钮服务 ===== -->
+        <service
+            android:name=".FloatingNavService"
+            android:exported="false"
+            android:enabled="true"
+            tools:ignore="ForegroundServiceType">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="elder_navigation" />
+        </service>
+
+        <!-- ===== 无障碍服务：仅供悬浮按键提供返回/主页/多任务 ===== -->
+        <service
+            android:name=".ElderAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+    </application>
+
+</manifest>

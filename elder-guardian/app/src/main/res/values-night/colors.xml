@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#64B5F6</color>
+    <color name="colorPrimaryDark">#121212</color>
+    <color name="elder_background">#121212</color>
+    <color name="elder_statusbar">#FF000000</color>
+    <color name="elder_card_bg">#1E1E1E</color>
+    <color name="elder_card_pressed">#263238</color>
+    <color name="elder_text_primary">#E8E8E8</color>
+    <color name="elder_text_secondary">#A0A0A0</color>
+    <color name="elder_divider">#333333</color>
+    <color name="elder_warning">#EF9A9A</color>
+    <color name="elder_ok">#81C784</color>
+    <color name="elder_disabled">#616161</color>
+</resources>

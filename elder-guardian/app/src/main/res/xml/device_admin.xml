@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <limit-password />
+        <watch-login />
+        <reset-password />
+        <force-lock />
+        <wipe-data />
+        <disable-camera />
+        <disable-keyguard />
+        <max-password-length />
+        <min-password-length />
+        <min-password-letters />
+        <min-password-numeric />
+        <min-password-symbols />
+        <min-password-lower-case />
+        <min-password-upper-case />
+        <password-history />
+        <password-expiration />
+        <password-quality />
+        <lock-task />
+        <disable-user />
+        <add-user />
+        <remove-user />
+        <install-existing />
+        <block-uninstall />
+    </uses-policies>
+</device-admin>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 只暴露这两个目录给安装器/系统，其他应用数据不对外 -->
+<paths>
+    <!-- 旧位置（早期版本收到的文件） -->
+    <external-files-path
+        name="incoming"
+        path="incoming/" />
+    <!-- 现在统一放公共下载目录，方便家人用文件管理器找到 -->
+    <external-path
+        name="downloads"
+        path="Download/老人守护/" />
+    <!-- 扫码临时照片：写到 cacheDir/qr/scan.jpg。
+         少了这一条 getUriForFile 直接抛 "Failed to find configured root"，
+         相机根本起不来 —— 之前扫码点了没反应就是这个原因。 -->
+    <cache-path
+        name="qr"
+        path="qr/" />
+</paths>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 电话墙的一张卡片：大头像 + 名字 + 号码，整张卡片都可点 -->
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cc_card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    android:foreground="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="@color/elder_card_bg"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="3dp"
+    app:cardUseCompatPadding="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="18dp"
+        android:paddingBottom="16dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <ImageView
+            android:id="@+id/cc_avatar"
+            android:layout_width="108dp"
+            android:layout_height="108dp"
+            android:layout_marginBottom="10dp"
+            android:contentDescription="头像"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/cc_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="21sp"
+            android:textStyle="bold"
+            android:textColor="@color/elder_text_primary" />
+
+        <TextView
+            android:id="@+id/cc_number"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="middle"
+            android:textSize="13sp"
+            android:textColor="@color/elder_text_secondary" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

@@ -1,0 +1,15 @@
+appname=elderrelay
+version=1.14.1
+service_port=8898
+display_name=守护中继
+desc=<p><strong>守护中继</strong>接收老人端上报的位置与状态，按围栏判定进出，把告警推送给家人端 App。支持多个围栏、圆形与多边形、定位精度缓冲。</p><p>首次启动自动生成设备令牌与家人端令牌，可在应用数据目录的 config.json 中查看。默认端口 8898。</p>
+changelog=1.14.1：家人页「超过 30 分钟没更新」的提示改成「可能手机息屏没上报，或者网络断了」——之前一律写"断网"，实际最常见的原因是手机夜间深度睡眠（上报闹钟是唤醒型的，见老人端 2.16）。
+source=thirdparty
+platform=x86
+maintainer=elder-guardian
+distributor=elder-guardian
+desktop_uidir=ui
+desktop_applaunchname=elderrelay.Application
+os_min_version=1.0.0
+ctl_stop=true
+disable_authorization_path=true

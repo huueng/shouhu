@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家人端 · 查位置</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: #f5f6f8; color: #1f2329;
+  }
+  .card { max-width: 560px; margin: 0 auto 14px; background: #fff; border-radius: 14px; padding: 18px 18px 14px;
+          box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #6b7280; margin-bottom: 14px; line-height: 1.6; }
+  label { display: block; font-size: 13px; color: #4b5563; margin: 10px 0 4px; }
+  input { width: 100%; padding: 11px 12px; font-size: 15px; border: 1px solid #d5d9e0; border-radius: 9px; background: #fff; color: inherit; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  button { width: 100%; padding: 13px; font-size: 16px; color: #fff; background: #1976d2; border: 0; border-radius: 10px;
+           margin-top: 14px; cursor: pointer; }
+  button:disabled { background: #9fb8d4; }
+  .ghost { background: #eef2f7; color: #1f2937; }
+  #out { font-size: 15px; line-height: 1.9; }
+  .big { font-size: 22px; font-weight: 700; }
+  .ok { color: #1b7f4b; } .bad { color: #c0392b; }
+  .kv { color: #4b5563; font-size: 13px; }
+  a { color: #1976d2; word-break: break-all; }
+  .tip { font-size: 12px; color: #8a9099; margin-top: 10px; line-height: 1.7; }
+  .chk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-top: 10px; }
+  .chk input { width: auto; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #14171a; color: #e8eaed; }
+    .card { background: #1d2125; box-shadow: none; }
+    input { background: #24292e; border-color: #333a41; color: #e8eaed; }
+    .ghost { background: #262c31; color: #e8eaed; }
+    .kv, .sub, .tip { color: #9aa4af; }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>查一下老人在哪</h1>
+  <div class="sub">
+    老人手机上打开「家人设置 → 定位服务」拿到 <b>公网 IPv6 地址</b> 和 <b>密钥</b>，填在下面即可。<br>
+    不需要任何服务器，两端直连。
+  </div>
+
+  <div class="row">
+    <div>
+      <label>老人机地址（IPv6 或域名）</label>
+      <input id="host" placeholder="2408:8220:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx">
+    </div>
+    <div style="max-width:110px">
+      <label>端口</label>
+      <input id="port" value="8899" inputmode="numeric">
+    </div>
+  </div>
+
+  <label>密钥</label>
+  <input id="key" placeholder="例如 6j32tqc3">
+
+  <button id="btn" onclick="query()">查询位置</button>
+
+  <div class="chk">
+    <input type="checkbox" id="auto" onchange="toggleAuto()">
+    <label for="auto" style="margin:0">每 30 秒自动刷新</label>
+  </div>
+
+  <div class="tip">
+    提示：地址里带冒号要加方括号，例如<br>
+    <code>http://[2408:8220:7f17:c0a1:56a:a38c:928d:9d02]:8899/loc?key=xxxx</code>
+  </div>
+</div>
+
+<div class="card">
+  <div id="out" class="ok">还没有查询。</div>
+</div>
+
+<script>
+var timer = null;
+
+function val(id) { return document.getElementById(id).value.trim(); }
+
+function save() {
+  try {
+    localStorage.setItem('elder_host', val('host'));
+    localStorage.setItem('elder_port', val('port'));
+    localStorage.setItem('elder_key', val('key'));
+  } catch (e) {}
+}
+
+function restore() {
+  try {
+    if (localStorage.getItem('elder_host')) document.getElementById('host').value = localStorage.getItem('elder_host');
+    if (localStorage.getItem('elder_port')) document.getElementById('port').value = localStorage.getItem('elder_port');
+    if (localStorage.getItem('elder_key')) document.getElementById('key').value = localStorage.getItem('elder_key');
+  } catch (e) {}
+}
+
+function apiUrl() {
+  var host = val('host').replace(/^https?:\/\//, '').replace(/\/$/, '');
+  var port = val('port') || '8899';
+  var key = encodeURIComponent(val('key'));
+  // IPv6 必须用方括号包起来
+  if (host.indexOf(':') >= 0 && host.charAt(0) !== '[') host = '[' + host + ']';
+  return 'http://' + host + ':' + port + '/loc?key=' + key;
+}
+
+function out(html, cls) {
+  var el = document.getElementById('out');
+  el.className = cls || '';
+  el.innerHTML = html;
+}
+
+function fmtTime(ms) {
+  var d = new Date(ms);
+  function p(n) { return n < 10 ? '0' + n : n; }
+  return (d.getMonth() + 1) + '-' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+
+async function query() {
+  if (!val('host') || !val('key')) {
+    out('请先填写地址和密钥。', 'bad');
+    return;
+  }
+  save();
+  var btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = '查询中…';
+  try {
+    var url = apiUrl();
+    var resp = await fetch(url, { cache: 'no-store' });
+    var txt = await resp.text();
+    var data;
+    try { data = JSON.parse(txt); } catch (e) {
+      out('返回内容看不懂（HTTP ' + resp.status + '）：<br>' + txt.replace(/</g, '&lt;'), 'bad');
+      return;
+    }
+    if (!data.ok) {
+      out(data.error === 'key'
+        ? '密钥不对，检查一下老人机上显示的密钥。'
+        : '查询失败：' + (data.error || '未知原因'), 'bad');
+      return;
+    }
+    var link = data.link || ('https://uri.amap.com/marker?position=' + data.gcj_lng + ',' + data.gcj_lat);
+    out(
+      '<div class="big ok">已定位</div>'
+      + '<div class="kv">时间：' + fmtTime(data.time || Date.now())
+      + '　精度：' + Math.round(data.acc || 0) + ' 米'
+      + '　电量：' + (data.battery >= 0 ? data.battery + '%' : '未知') + '</div>'
+      + '<div class="kv">坐标：' + data.lat.toFixed(5) + ', ' + data.lng.toFixed(5) + '</div>'
+      + '<p><a href="' + link + '" target="_blank" rel="noopener">在高德地图里打开 ›</a></p>'
+      , 'ok');
+  } catch (e) {
+    out('连不上老人机。可能原因：<br>'
+      + '· 地址/端口填错<br>'
+      + '· 老人机没联网，或没有公网 IPv6<br>'
+      + '· 老人机上的定位服务没开<br>'
+      + '<span class="kv" style="font-size:12px">' + (e && e.message ? e.message : e) + '</span>', 'bad');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '查询位置';
+  }
+}
+
+function toggleAuto() {
+  if (timer) { clearInterval(timer); timer = null; }
+  if (document.getElementById('auto').checked) {
+    query();
+    timer = setInterval(query, 30000);
+  }
+}
+
+restore();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+#!/bin/bash
+# 安装前：准备数据与运行目录
+set -u
+
+APP_NAME="elderrelay"
+PKGVAR="${TRIM_PKGVAR:-/var/apps/${APP_NAME}/var}"
+APPDEST="${TRIM_APPDEST:-/var/apps/${APP_NAME}/target}"
+
+mkdir -p "${PKGVAR}" 2>/dev/null || true
+mkdir -p "${APPDEST}" 2>/dev/null || true
+
+# 可执行位兜底：Windows 上打的包有时会丢；两种落点都补一次
+for c in "${APPDEST}/elderrelay" "${APPDEST}/app/elderrelay"; do
+  if [ -f "$c" ]; then
+    chmod 755 "$c" 2>/dev/null || true
+  fi
+done
+
+exit 0

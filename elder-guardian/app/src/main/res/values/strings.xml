@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">守护</string>
+    <string name="accessibility_desc">仅用于悬浮按键的返回、主页、多任务操作，不读取屏幕内容。</string>
+
+    <string name="warning_title">⚠️ 重要警告</string>
+    <string name="warning_body">本应用接管手机后会有以下变化：
+
+• 成为手机桌面（开机直接进入）
+• 屏蔽状态栏下拉、锁定任务（老人退不出去）
+• 禁止安装新应用、禁止卸载
+• 只显示白名单应用的通知
+• 周期清理后台
+
+激活后，这台手机将只能运行家人允许的功能。
+
+如需恢复：
+• 本应用设置页可一键解除屏幕固定
+• 或电脑执行 tools\provision.ps1 -Unlock
+• 极端情况恢复出厂设置
+
+请确认这台手机是给老人专用的，然后继续。</string>
+    <string name="warning_confirm">我理解，继续</string>
+    <string name="warning_cancel">取消</string>
+    <string name="warning_confirm2">⚠️ 再次确认</string>
+    <string name="warning_body2">一旦激活，手机会进入「老人守护」模式，普通应用无法自由安装。确定要继续吗？</string>
+</resources>

@@ -1,0 +1,11 @@
+# 构建上下文里不需要的东西
+*.exe
+data/
+/dist/
+/fpk/
+/openwrt/
+*.ipk
+*.fpk
+*_test.go
+.git
+.gitignore

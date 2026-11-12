@@ -1,0 +1,15 @@
+{
+  ".url": {
+    "elderrelay.Application": {
+      "title": "守护中继",
+      "desc": "老人定位围栏告警中继",
+      "icon": "images/icon_{0}.png",
+      "type": "iframe",
+      "protocol": "",
+      "gatewayPrefix": "/app/elderrelay",
+      "gatewaySocket": "app.sock",
+      "url": "/app/elderrelay",
+      "allUsers": true
+    }
+  }
+}

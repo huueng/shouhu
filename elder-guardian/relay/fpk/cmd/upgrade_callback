@@ -1,0 +1,20 @@
+#!/bin/bash
+# 升级后：补可执行位并启动
+set -u
+
+CMD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPDEST="${TRIM_APPDEST:-/var/apps/elderrelay/target}"
+
+for c in "${APPDEST}/elderrelay" "${APPDEST}/app/elderrelay"; do
+  [ -f "$c" ] && chmod 755 "$c" 2>/dev/null || true
+done
+
+# 重装 fpk 说明用户想要"包里的版本"。把内置升级装的 current/ 清掉，
+# 否则启动脚本会优先用那个更旧的二进制，装了半天还是旧版。
+PKGVAR="${TRIM_PKGVAR:-/var/apps/elderrelay/var}"
+if [ -f "${PKGVAR}/current/elderrelay" ]; then
+  mv "${PKGVAR}/current/elderrelay" "${PKGVAR}/current/elderrelay.replaced-$(date '+%Y%m%d%H%M%S')" 2>/dev/null || rm -f "${PKGVAR}/current/elderrelay"
+fi
+"${CMD_DIR}/main" start >/dev/null 2>&1 || true
+
+exit 0

@@ -1,0 +1,10 @@
+#!/bin/bash
+# 配置变更后：重启服务让新配置（config.json）生效
+set -u
+
+CMD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"${CMD_DIR}/main" stop  >/dev/null 2>&1 || true
+"${CMD_DIR}/main" start >/dev/null 2>&1 || true
+
+exit 0

@@ -1,0 +1,2270 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>家人端 · 守护</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; padding: 12px 12px 28px; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+         background: #f5f6f8; color: #1f2329; font-size: 15px; }
+  .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  h1 { font-size: 18px; margin: 0 0 8px; display: flex; align-items: center; justify-content: space-between; }
+  h2 { font-size: 14px; margin: 6px 0 6px; color: #1976d2; }
+  button { padding: 11px 14px; font-size: 15px; border-radius: 10px; border: 0; background: #1976d2; color: #fff; font-weight: 600; }
+  button.ghost { background: #eef2f7; color: #1f2937; font-weight: 500; }
+  button.small { font-size: 13px; padding: 7px 11px; font-weight: 500; }
+  button.danger { background: #fdecea; color: #c0392b; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .elder { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #f7f9fb; margin-bottom: 10px; }
+  .avatar { width: 46px; height: 46px; border-radius: 50%; background: #1976d2; color: #fff; display: flex;
+            align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex: none; }
+  .meta { flex: 1; min-width: 0; }
+  .name { font-weight: 600; font-size: 16px; }
+  .sub { font-size: 12px; color: #6b7280; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ok { color: #1b7f4b; } .bad { color: #c0392b; } .dim { opacity: .62; }
+  .kv { font-size: 13px; color: #6b7280; line-height: 1.8; }
+  /* 主界面：两列大卡片，和老人机桌面一个风格 */
+  /* 两列布局：先写 flex（Android 6/7 的老 WebView 不支持 CSS grid，
+     直接写 grid 会变成"一张卡占满整行"），支持的浏览器再用 grid 覆盖 */
+  .grid { display: flex; flex-wrap: wrap; margin: -5px; }
+  .grid > .ecard { width: calc(50% - 10px); margin: 5px; }
+  @supports (display: grid) {
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+    .grid > .ecard { width: auto; margin: 0; }
+  }
+  .ecard { position: relative; background: #f7f9fb; border-radius: 16px; padding: 14px 10px 12px;
+           display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+  .ecard:active { transform: scale(.98); }
+  .ecard .ava { width: 86px; height: 86px; border-radius: 20px; object-fit: cover; display: block; }
+  .ecard .ava-letter { width: 86px; height: 86px; border-radius: 20px; display: flex;
+           align-items: center; justify-content: center; font-size: 40px; font-weight: 700; color: #fff; }
+  .ecard .nm { margin-top: 9px; font-size: 17px; font-weight: 700; max-width: 100%;
+           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ecard .st { margin-top: 5px; font-size: 12px; color: #6b7280; text-align: center;
+           line-height: 1.5; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ecard .st.ok { color: #1b7f4b; }
+  .ecard .pickava { position: absolute; right: 6px; top: 6px; font-size: 10px;
+           background: rgba(0,0,0,.5); color: #fff; border-radius: 8px; padding: 3px 6px; }
+  .autoline { display: flex; align-items: center; justify-content: space-between;
+           margin-top: 10px; font-size: 13px; color: #6b7280; }
+  #map { width: 100%; height: 240px; border-radius: 12px; margin-top: 10px; background: #e9edf2; }
+  .tip { font-size: 12px; color: #8a9099; line-height: 1.8; margin-top: 6px; }
+  ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.9; color: #4b5563; }
+  code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .banner { border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 10px; }
+  .banner.warn { background: #fff4e5; color: #a35f00; }
+  .banner.bad { background: #fdecea; color: #b3261e; }
+  .hidden { display: none !important; }
+  .hist { max-height: 210px; overflow: auto; }
+  .hist div { display: flex; justify-content: space-between; font-size: 12px; color: #4b5563; padding: 5px 0; border-bottom: 1px dashed #e5e7eb; }
+  input { width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #d5d9e0; border-radius: 10px; background: #fff; color: inherit; margin: 4px 0; }
+  label { display: block; font-size: 12px; color: #6b7280; margin-top: 8px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #14171a; color: #e8eaed; }
+    .card { background: #1d2125; box-shadow: none; }
+    .elder { background: #24292e; }
+    .ecard { background: #24292e; }
+    .ecard .st, .autoline { color: #9aa4af; }
+    input { background: #24292e; border-color: #333a41; color: #e8eaed; }
+    button.ghost { background: #262c31; color: #e8eaed; }
+    button.danger { background: #3a2220; color: #ff8a80; }
+    code { background: #262c31; }
+    .kv, ul, .tip, .sub, label { color: #9aa4af; }
+    .banner.warn { background: #3a2f1d; color: #ffcc80; }
+    .banner.bad { background: #3a2220; color: #ff8a80; }
+    .hist div { color: #9aa4af; border-color: #2b3036; }
+    #map { background: #24292e; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 列表页 ===== -->
+<div id="viewList">
+  <div class="card">
+    <h1><span>添加老人</span>
+      <button class="small ghost" onclick="addMenu()">＋ 添加</button>
+    </h1>
+    <div id="addPanel"></div>
+    <div id="elderList"></div>
+    <div class="autoline">
+      <span id="autoHint">自动刷新：关</span>
+      <button class="small ghost" onclick="toggleAutoStatus()" id="autoStatusBtn">开启自动刷新</button>
+    </div>
+    <div class="autoline">
+      <span id="alertHint">后台提醒：开</span>
+      <button class="small ghost" onclick="toggleAlerts()" id="alertBtn">关闭后台提醒</button>
+    </div>
+    <div class="tip">扫老人机上「远程访问」的二维码即可添加，地址和密钥自动填好。
+      长按不了卡片，就用右上角小圆标换头像。</div>
+  </div>
+
+  <div class="card">
+    <h2>不用打开这个 App：响两声挂断查位置</h2>
+    <ol style="margin:6px 0 0;padding-left:20px;font-size:13px;line-height:2;color:#4b5563">
+      <li>用你自己的手机给老人机打个电话</li>
+      <li><b>响 1～2 声就挂断</b>（不要接听）</li>
+      <li>老人机会自动把当前位置发短信给你，点短信里的高德链接就能看</li>
+    </ol>
+    <div class="tip">
+      前提：① 老人机「家人与联系人」里填了你的号码；② 开着「短信定位」和「来电触发」；<br>
+      只在没接听时有效（8 秒内挂断），接通了就不触发——所以别等它响完。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>发短信查询（完全不用网络）</h2>
+    <ul>
+      <li>发 <code>位置</code> —— 回一条当前位置</li>
+      <li>发 <code>跟踪</code> / <code>跟踪 10</code> / <code>跟踪 10 30</code> —— 连续回多条</li>
+    </ul>
+    <div class="tip">只有老人机里配置的「家人号码」才有效；短信里的高德链接点开就能看。</div>
+  </div>
+</div>
+
+<!-- ===== 详情页 ===== -->
+<div id="viewDetail" class="hidden">
+  <div class="card">
+    <h1><span id="dName">—</span>
+      <button class="small ghost" onclick="backToList()">返回</button>
+    </h1>
+    <div class="kv" id="dHost">—</div>
+    <div class="row" style="margin-top:10px">
+      <button onclick="query(true)">查询位置</button>
+      <button class="ghost" onclick="openAmap()">高德打开</button>
+    </div>
+
+    <div id="banner"></div>
+    <div id="dResult" class="kv" style="margin-top:10px">还没查询。</div>
+    <div id="map"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" onclick="copyCoords()">复制坐标</button>
+      <button class="ghost" onclick="focusMap()">看大地图</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="ghost" onclick="loadStatus()">体检</button>
+      <button class="ghost" onclick="loadTrack()">拉取轨迹</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="sendCmd('locate')">催一次定位</button>
+      <button onclick="sendCmd('health')">健康检测</button>
+      <button class="ghost" onclick="openSnaps()">恢复布局</button>
+      <button class="ghost" onclick="saveSnapAsk()">存快照</button>
+    </div>
+    <div id="cmdResult" class="kv" style="margin-top:8px"></div>
+    <div class="row" id="linkRow" style="margin-top:8px">
+      <button class="ghost" id="linkBtn" onclick="toggleFastLink()">秒级通道</button>
+    </div>
+    <div class="row" id="volRow" style="margin-top:8px">
+      <button class="ghost" onclick="sendCmd('volume','down')">媒体 −</button>
+      <button class="ghost" onclick="sendCmd('volume','up')">媒体 +</button>
+      <button class="ghost" onclick="sendCmd('volume','ring:down')">铃声 −</button>
+      <button class="ghost" onclick="sendCmd('volume','ring:up')">铃声 +</button>
+    </div>
+    <div class="row" id="volRow2" style="margin-top:6px">
+      <button class="ghost" onclick="sendCmd('volume','mute')">媒体静音</button>
+      <button class="ghost" onclick="sendCmd('volume','unmute')">恢复媒体</button>
+      <button class="ghost" onclick="sendCmd('volume','ring:unmute')">恢复铃声</button>
+    </div>
+    <div id="status" class="kv" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card hidden" id="snapCard">
+    <h2>历史快照
+      <button class="small ghost" onclick="closeSnaps()">关闭</button>
+    </h2>
+    <div class="kv" id="snapList">还没有快照</div>
+    <div class="kv" id="snapDetail" style="margin-top:8px;white-space:pre-line"></div>
+    <div class="tip">「存快照」会把这台手机<b>现在</b>的配置存一份，名字自己起。
+      恢复某一份会连桌面卡片、锁定开关、报时一起改回去 —— 上报地址不会被改，
+      不然恢复到几周前的快照手机就失联了。</div>
+  </div>
+
+  <div class="card">
+    <h2>电子围栏</h2>
+    <div class="kv" id="fenceInfo">未设置</div>
+    <div class="row" style="margin-top:8px">
+      <button class="ghost" onclick="addCircleFence()">＋ 圆形围栏</button>
+      <button class="ghost" onclick="startPoly()">＋ 多边形围栏</button>
+    </div>
+    <div id="polyBar" class="hidden" style="margin-top:8px">
+      <div class="tip" id="polyHint" style="color:#b42318">在地图上依次点选拐点</div>
+      <div class="row" style="margin-top:6px">
+        <button onclick="polyFinish()">完成</button>
+        <button class="ghost" onclick="polyUndo()">撤销一点</button>
+        <button class="ghost" onclick="polyCancel()">取消</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="autoBtn" class="ghost" onclick="toggleAuto()">自动查（1 分钟）</button>
+    </div>
+    <div class="tip" id="fenceTip">可以建多个围栏，互相重叠也没关系——每个独立判定。
+      圆形适合「家」这种，多边形适合街区、厂区、菜市场。</div>
+  </div>
+
+  <div class="card">
+    <h2>路径</h2>
+    <div class="kv" id="pathSummary">还没有记录</div>
+    <div class="hist" id="histList"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" onclick="clearHistory()">清空记录</button>
+    </div>
+    <div class="tip">每查一次就记一个点，地图上会把它们连成线。</div>
+  </div>
+
+  <div class="card">
+    <h2>配置</h2>
+    <div class="row">
+      <button class="ghost" onclick="renameElder()">改名</button>
+      <button class="ghost" onclick="pickAvatar(curId)">换照片</button>
+      <button class="danger" onclick="removeElder()">删除</button>
+    </div>
+    <div class="tip" id="cfgHint"></div>
+  </div>
+</div>
+
+<!-- ===== 编辑页 ===== -->
+<div id="viewEdit" class="hidden card">
+  <h1><span>添加 / 修改</span><button class="small ghost" onclick="cancelEdit()">取消</button></h1>
+  <label>称呼（例如：妈、爷爷）</label>
+  <input id="fName" placeholder="妈">
+
+  <label>连接方式</label>
+  <div class="row" style="gap:8px;margin:2px 0 6px">
+    <button id="mRelay" onclick="setMode('relay')">服务器</button>
+    <button id="mDirect" class="ghost" onclick="setMode('direct')">直连老人机</button>
+  </div>
+  <div class="tip" id="modeHint"></div>
+
+  <div id="boxRelay">
+    <label>服务器地址（带端口）</label>
+    <input id="fBase" placeholder="https://shouhu.example.com:812">
+    <label>令牌</label>
+    <input id="fToken" placeholder="中继首页上显示的那串">
+  </div>
+
+  <div id="boxDirect" class="hidden">
+    <label>地址（域名或 IPv6，带端口）</label>
+    <input id="fHost" placeholder="elder.dynv6.net:8899">
+    <label>密钥</label>
+    <input id="fKey" placeholder="老人机上显示的密钥">
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <button onclick="saveEdit()">保存</button>
+    <button class="ghost" onclick="scanNow()">扫码填充</button>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <button class="ghost" onclick="scanGallery()">从相册选二维码截图</button>
+  </div>
+  <div class="tip">扫服务器首页上的二维码会自动切到「服务器」并填好地址和令牌；扫老人机的码则走直连。<br>
+    地址里直接写端口（例如 <code>shouhu.example.com:812</code>），不再单独填端口，也不会自动补端口。</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ================= 数据 ================= */
+var LS = 'elder_family_v2';
+var db = { elders: [] };
+var curId = null;
+var editId = null;          // null = 新增
+var map = null, mapMarker = null, mapPath = null;
+/* 一张围栏一个图层，多围栏时要一起清掉 */
+var mapFences = [];
+/* 多边形编辑状态 */
+var polyMode = false, polyPts = [], polyLayer = null, polyMarks = [];
+var autoTimer = null;
+var lastData = null;
+
+function loadDB() {
+  try {
+    var raw = localStorage.getItem(LS);
+    if (raw) db = JSON.parse(raw);
+  } catch (e) {}
+  if (!db || !db.elders) db = { elders: [] };
+  // 中继的轨迹点用 "lon"，家人端历史上按 "lng" 存。
+  // 以前合并时直接拿 p.lng → 变成 undefined，画列表/算距离就抛
+  // "Cannot read property 'toFixed' of undefined"。这里统一补齐，顺手丢掉坏点。
+  for (var i = 0; i < db.elders.length; i++) {
+    var h = db.elders[i].history;
+    if (!h || !h.length) continue;
+    var fixed = [];
+    for (var j = 0; j < h.length; j++) {
+      var pt = h[j] || {};
+      if (pt.lng === undefined && pt.lon !== undefined) pt.lng = pt.lon;
+      if (!isFinite(pt.lat) || !isFinite(pt.lng) || !pt.t) continue;
+      fixed.push(pt);
+    }
+    db.elders[i].history = fixed;
+  }
+}
+function saveDB() {
+  try {
+    localStorage.setItem(LS, JSON.stringify(db));
+    syncAlerts();
+    return true;
+  } catch (e) {
+    return false;   // 头像太多、配额满了：上层要能看出来
+  }
+}
+
+/* 把老人列表同步给原生。常驻服务靠这份数据做后台检查，
+ * 所以每次配置变化都要推一次。 */
+function syncAlerts() {
+  try {
+    if (!window.Android || !Android.setAlerts) return;
+    Android.setAlerts(JSON.stringify(db.elders.map(function (e) {
+      return {
+        id: e.id,
+        name: e.name || '老人',
+        mode: e.mode || 'direct',
+        base: e.base || '',
+        token: e.token || '',
+        host: e.host || '',
+        port: e.port || '8899',
+        key: e.key || '',
+        fencesServer: e.fencesServer || [],
+        fences: (e.mode === 'relay' ? [] : (e.fences || [])),
+        fence: e.fence || null,
+        enabled: e.alerts !== false
+      };
+    })));
+  } catch (err) {}
+}
+function elder(id) {
+  for (var i = 0; i < db.elders.length; i++) if (db.elders[i].id === id) return db.elders[i];
+  return null;
+}
+function uid() { return 'e' + Date.now().toString(36) + Math.floor(Math.random() * 1000); }
+
+/* ================= 列表 ================= */
+function renderList() {
+  var box = document.getElementById('elderList');
+  if (!db.elders.length) {
+    box.innerHTML = '<div class="kv">还没有添加。点右上角「＋ 添加」，扫老人机上的二维码最快。</div>';
+    renderAutoLine();
+    return;
+  }
+  var html = '<div class="grid">';
+  for (var i = 0; i < db.elders.length; i++) {
+    var e = db.elders[i];
+    html += '<div class="ecard" onclick="openElder(\'' + e.id + '\')">'
+      + '<span class="pickava" onclick="event.stopPropagation();pickAvatar(\'' + e.id + '\')">换头像</span>'
+      + avatarHtml(e)
+      + '<div class="nm">' + esc(e.name || '未命名') + '</div>'
+      + '<div class="st' + (e.last ? ' ok' : '') + '">' + esc(cardLine2(e)) + '</div>'
+      + '<div class="st">' + esc(cardLine1(e)) + '</div>'
+      + '</div>';
+  }
+  html += '</div>';
+  box.innerHTML = html;
+  renderAutoLine();
+}
+
+/* 卡片第一行：上次定位时间（这是家人最关心的） */
+function cardLine2(e) {
+  if (!e.last) return '还没查过位置';
+  return '上次 ' + fmtTime(e.last.t) + '　' + Math.round(e.last.acc || 0) + ' 米';
+}
+
+/* 卡片第二行：电量 / 静音 / 网络，来自 /status（不取 GPS，很省电） */
+function cardLine1(e) {
+  var s = e.status;
+  if (!s) return e.last ? '' : '点开可查询';
+  var out = [];
+  if (s.battery >= 0) {
+    // 电量是"上报那一刻"的值：超过 30 分钟没更新就标个「旧」，
+    // 否则家人对着手机上的 75% 看这里的 62%，会以为是 App 读数不准
+    var stale = s.batteryT && (Date.now() - s.batteryT > 30 * 60000);
+    out.push(s.battery + '%' + (s.charging ? '⚡' : '') + (stale ? '·旧' : ''));
+  }
+  if (s.muted) out.push('静音');
+  if (s.wifi) out.push('WiFi');
+  else if (s.mobile) out.push('流量');
+  else if (s.intranet) out.push('断网了');
+
+  if (e.history && e.history.length) out.push('轨迹 ' + e.history.length + ' 点');
+  if (!out.length) out.push('状态已同步');
+  return out.join(' · ');
+}
+
+/* 头像：有自定义图用图，没有就按名字生成彩色方标（和老人机电话墙一个规则） */
+var AV_COLORS = ['#1976d2', '#388e3c', '#f57c00', '#7b1fa2', '#00796b', '#c2185b'];
+function avatarHtml(e) {
+  if (e.avatar) return '<img class="ava" src="' + e.avatar + '" alt="">';
+  var n = (e.name || '老');
+  var letter = /[\u4e00-\u9fa5]/.test(n) ? n.slice(-1) : n.slice(0, 1).toUpperCase();
+  var c = AV_COLORS[Math.abs(hashCode(n)) % AV_COLORS.length];
+  return '<div class="ava-letter" style="background:' + c + '">' + esc(letter) + '</div>';
+}
+function hashCode(str) {
+  var h = 0;
+  for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+  return h;
+}
+
+function pickAvatar(id) {
+  if (window.Android && Android.pickAvatar) Android.pickAvatar(id);
+  else toast('换头像要在家人端 App 里用');
+}
+
+/** 原生选完图回调：压好的 data URL 直接存进本地库 */
+window.onAvatarPicked = function (id, dataUrl) {
+  var e = elder(id);
+  if (!e || !dataUrl) return;
+  var old = e.avatar;
+  e.avatar = dataUrl;
+  if (!saveDB()) {           // 配额满了就回滚，别把整个库写坏
+    e.avatar = old;
+    toast('图片太大存不下，换一张或者换个更小的头图');
+    return;
+  }
+  renderList();
+  toast('头像已更新');
+};
+
+/* ================= 自动刷新（每 3 分钟拉一次状态） ================= */
+var AUTO_KEY = 'elder_auto_status';
+var autoStatusTimer = null;
+var autoStatusOn = localStorage.getItem(AUTO_KEY) !== '0';
+
+function renderAutoLine() {
+  var hint = document.getElementById('autoHint');
+  var btn = document.getElementById('autoStatusBtn');
+  if (!hint || !btn) return;
+  hint.textContent = autoStatusOn ? '自动刷新：每 3 分钟' : '自动刷新：关';
+  btn.textContent = autoStatusOn ? '关闭自动刷新' : '开启自动刷新';
+}
+
+/* ===== 后台提醒（常驻服务） =====
+ * 这个是重点：不开的话，关掉 App 就收不到围栏和失联提醒，
+ * 自动刷新只是"打开 App 时同步数据"。 */
+var alertsOn = true;
+
+function initAlerts() {
+  try {
+    if (window.Android && Android.alertsEnabled) alertsOn = Android.alertsEnabled();
+  } catch (e) {}
+  renderAlertLine();
+}
+
+function renderAlertLine() {
+  var hint = document.getElementById('alertHint');
+  var btn = document.getElementById('alertBtn');
+  if (!hint || !btn) return;
+  hint.textContent = alertsOn ? '后台提醒：开（关掉 App 也会响）' : '后台提醒：关';
+  btn.textContent = alertsOn ? '关闭后台提醒' : '开启后台提醒';
+}
+
+function toggleAlerts() {
+  alertsOn = !alertsOn;
+  try {
+    if (window.Android && Android.setAlertsEnabled) Android.setAlertsEnabled(alertsOn);
+  } catch (e) {}
+  renderAlertLine();
+  if (alertsOn) {
+    syncAlerts();
+    toast('已开启：关掉 App 也会收到围栏和失联提醒');
+  } else {
+    toast('已关闭后台提醒');
+  }
+}
+
+function toggleAutoStatus() {
+  autoStatusOn = !autoStatusOn;
+  try { localStorage.setItem(AUTO_KEY, autoStatusOn ? '1' : '0'); } catch (e) {}
+  renderAutoLine();
+  if (autoStatusOn) {
+    refreshAllStatus();
+    startAutoStatus();
+    toast('已开启：每 3 分钟同步电量、状态和轨迹');
+  } else {
+    stopAutoStatus();
+    toast('已关闭自动刷新');
+  }
+}
+
+function startAutoStatus() {
+  stopAutoStatus();
+  if (!autoStatusOn || !db.elders.length) return;
+  autoStatusTimer = setInterval(refreshAllStatus, 180000);
+}
+
+function stopAutoStatus() {
+  if (autoStatusTimer) { clearInterval(autoStatusTimer); autoStatusTimer = null; }
+}
+
+/**
+ * 把老人端记录的轨迹点并进本地路径。
+ * 按时间戳去重（同一个点被重复拉取时不重复画），返回新增点数。
+ */
+function mergeTrack(e, pts) {
+  if (!pts || !pts.length) return 0;
+  if (!e.history) e.history = [];
+  var seen = {};
+  for (var i = 0; i < e.history.length; i++) seen[e.history[i].t] = 1;
+  var added = 0;
+  for (var j = 0; j < pts.length; j++) {
+    var p = pts[j];
+    if (!p || !p.t || seen[p.t]) continue;
+    // 中继给的是 lon，本地历史用 lng，两个都认
+    var lng = (p.lng !== undefined ? p.lng : p.lon);
+    if (!isFinite(p.lat) || !isFinite(lng)) { continue; }
+    e.history.push({ t: p.t, lat: p.lat, lng: lng });
+    added++;
+  }
+  if (added) {
+    e.history.sort(function (a, b) { return a.t - b.t; });
+    if (e.history.length > 500) e.history = e.history.slice(-500);
+    e.lastTrackT = pts[pts.length - 1].t;
+  }
+  return added;
+}
+
+/**
+ * 自动同步一位老人：先拉 /status（电量/静音/网络），再拉 /track 增量（轨迹点）。
+ *
+ * 为什么两个都拉：状态是"现在怎么样"，轨迹是"今天去过哪"。
+ * 轨迹是老人机本地记录的，家人不主动拉就永远停在手机上（老人端不出网、不推流），
+ * 所以放在自动刷新里顺带做掉，家人不用再点「拉取轨迹」。
+ *
+ * 串行 + 每个 6 秒超时：老人机可能是移动网络，并发打过去只会一起超时。
+ */
+function syncElder(e, cb) {
+  if (e.mode === 'relay') { syncElderRelay(e, cb); return; }
+  var done = false;
+  var timer = setTimeout(function () {
+    if (done) return;
+    done = true;
+    cb();
+  }, 6000);
+
+  function finish() {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    cb();
+  }
+
+  fetch(apiUrl(e).replace('/loc?', '/status?'), { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (st) {
+      if (st && st.ok) {
+        e.status = {
+          battery: st.battery, batteryT: st.batteryT, charging: st.charging,
+          wifi: st.wifi, mobile: st.mobile, muted: st.muted, screenOn: st.screenOn, t: Date.now()
+        };
+        e.trackPoints = st.trackPoints;
+      }
+    })
+    .catch(function () { })
+    .then(function () {
+      var url = apiUrl(e).replace('/loc?', '/track?') + '&since=' + (e.lastTrackT || 0);
+      return fetch(url, { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok) e.newPoints = (e.newPoints || 0) + mergeTrack(e, d.points);
+        })
+        .catch(function () { });
+    })
+    .then(finish)
+    .catch(finish);
+}
+
+/* ===== 中继同步：一次拉 /api/status（含围栏内外）+ /api/track 增量 =====
+ *
+ * 和直连的区别：直连是"问老人机要"，中继是"问 NAS 要已落库的数据"。
+ * 好处是老人关机/断网也能看到最后一次位置和失联前的时间。
+ */
+function syncElderRelay(e, cb) {
+  var base = (e.base || '').replace(/\/+$/, '');
+  var k = encodeURIComponent(e.token || '');
+  var done = false;
+  var timer = setTimeout(function () {
+    if (done) return;
+    done = true;
+    cb();
+  }, 8000);
+
+  function finish() {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    cb();
+  }
+
+  if (!base || !e.token) { finish(); return; }
+
+  fetch(base + '/api/status?k=' + k, { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (!j || !j.ok) return;
+      var d = (j.devices || [])[0];
+      if (!d) return;
+      e.online = d.online;
+      e.lastSeen = d.lastSeen;
+      e.status = {
+        battery: d.battery, batteryT: d.batteryT, charging: d.charging,
+        wifi: d.wifi, mobile: d.mobile, muted: false, t: Date.now()
+      };
+      if (d.posT && d.lat) {
+        e.last = { t: d.posT, lat: d.lat, lng: d.lon, acc: d.acc || 0 };
+      }
+      // 中继返回的围栏经度叫 lon，页面历史上用的是 lng。以前没这层转换，
+      // mapPt 拿到 undefined 算出 NaN，「加了围栏地图上却没反应」就是这个。
+      var fs = d.fences || [];
+      for (var fi = 0; fi < fs.length; fi++) {
+        if (typeof fs[fi].lng !== 'number') fs[fi].lng = fs[fi].lon;
+      }
+      e.fencesServer = fs;
+      e.snaps = d.snaps || [];
+      e.fastLink = !!d.fastLink;
+      e.intervalMin = d.intervalMin || 0;
+      if (curId === e.id) syncLinkBtn();
+    })
+    .catch(function () { })
+    .then(function () {
+      return fetch(base + '/api/track?k=' + k + '&since=' + (e.lastTrackT || 0), { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok) e.newPoints = (e.newPoints || 0) + mergeTrack(e, d.points);
+        })
+        .catch(function () { });
+    })
+    .then(finish)
+    .catch(finish);
+}
+
+function refreshAllStatus() {
+  if (!db.elders.length) return;
+  var i = 0;
+  var totalNew = 0;
+  function next() {
+    if (i >= db.elders.length) {
+      saveDB();
+      if (!curId) renderList();
+      else { renderHistory(); renderFence(); }
+      if (totalNew > 0) toast('自动同步：新增 ' + totalNew + ' 个轨迹点');
+      return;
+    }
+    var e = db.elders[i++];
+    var before = (e.history || []).length;
+    syncElder(e, function () {
+      totalNew += Math.max(0, (e.history || []).length - before);
+      next();
+    });
+  }
+  next();
+}
+
+/* ================= 详情 ================= */
+function openElder(id) {
+  curId = id;
+  var e = elder(id);
+  if (!e) return;
+  document.getElementById('viewList').classList.add('hidden');
+  document.getElementById('viewEdit').classList.add('hidden');
+  document.getElementById('viewDetail').classList.remove('hidden');
+  document.getElementById('dName').textContent = e.name || '未命名';
+  document.getElementById('dHost').textContent = maskHost(e);
+  document.getElementById('cfgHint').textContent =
+    '地址：' + maskHost(e) + '　密钥：' + mask(e.key) + '（界面上不显示完整地址，要改就重新扫码）';
+  banner('', '');
+  renderFence();
+  renderHistory();
+  if (e.last) showResult(e.last);
+  syncLinkBtn();
+  setTimeout(function () { initMap(e); }, 60);
+}
+
+function backToList() {
+  stopAuto();
+  curId = null;
+  document.getElementById('viewDetail').classList.add('hidden');
+  document.getElementById('viewEdit').classList.add('hidden');
+  document.getElementById('viewList').classList.remove('hidden');
+  renderList();
+}
+
+/* ================= 查询 ================= */
+/**
+ * 把用户填的地址拆成 scheme / host / port。
+ * 支持：域名、域名:端口、[IPv6]:端口、裸 IPv6、http(s)://域名:端口/路径
+ * 不填端口就返回 defPort（直连默认 8899），不会凭空空降一个别的端口。
+ */
+function splitAddr(raw, defPort) {
+  var s = (raw || '').trim().replace(/\/+$/, '');
+  var scheme = '';
+  var m = s.match(/^(https?):\/\//i);
+  if (m) { scheme = m[1].toLowerCase(); s = s.substring(m[0].length); }
+  var host = s, port = '';
+  if (s.charAt(0) === '[') {
+    var i = s.indexOf(']');
+    if (i > 0) {
+      host = s.substring(1, i);
+      var rest = s.substring(i + 1).match(/^:(\d+)/);
+      if (rest) port = rest[1];
+    }
+  } else if ((s.match(/:/g) || []).length > 1) {
+    host = s;                       // 裸 IPv6，不能按 host:port 切
+  } else {
+    var j = s.lastIndexOf(':');
+    if (j > 0) { host = s.substring(0, j); port = s.substring(j + 1).replace(/\D/g, ''); }
+  }
+  return { scheme: scheme, host: host, port: port || defPort || '' };
+}
+
+/** 直连老人机的基地址：http://host:port */
+function directBase(e) {
+  // 注意别把 host 和 port 拼起来再拆 —— 裸 IPv6 里本来就有冒号，
+  // 拼完会被当成"IPv6 的最后一段"，端口反而丢了。
+  var a = splitAddr(e.host || '', e.port || '8899');
+  var h = a.host;
+  if (h.indexOf(':') >= 0) h = '[' + h + ']';
+  return 'http://' + h + ':' + (a.port || '8899');
+}
+
+function apiUrl(e) {
+  return directBase(e) + '/loc?key=' + encodeURIComponent(e.key || '');
+}
+
+/**
+ * 直连模式下发命令：老人机的 LocateServer 上有个 /cmd，跟中继那套执行器是同一份逻辑。
+ * 所以调音量、存快照、看快照、催定位，直连也能用，而且结果是同步回来的（不用等上报）。
+ */
+function directCmd(e, cmd, arg) {
+  var url = directBase(e) + '/cmd?key=' + encodeURIComponent(e.key || '')
+    + '&c=' + encodeURIComponent(cmd) + '&arg=' + encodeURIComponent(arg || '');
+  return fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); });
+}
+
+function query(showBusy) {
+  var e = elder(curId);
+  if (!e) return;
+
+  // 中继模式绝对不能去直连老人机：老人机在内网/没有公网入口，
+  // 这里直连一定失败，然后弹红字「连不上老人机」——可中继明明显示在线，
+  // 家人就被这句误导了。中继模式改为问中继要最后一次上报的位置。
+  if (e.mode === 'relay') {
+    queryViaRelay(e, showBusy);
+    return;
+  }
+
+  var body = document.getElementById('dResult');
+  if (showBusy) body.textContent = '正在联系老人机…';
+  fetch(apiUrl(e), { cache: 'no-store' })
+    .then(function (r) { return r.text().then(function (t) { return { s: r.status, t: t }; }); })
+    .then(function (res) {
+      var d;
+      try { d = JSON.parse(res.t); } catch (err) {
+        banner('bad', '返回异常（HTTP ' + res.s + '）：' + res.t.slice(0, 80));
+        return;
+      }
+      if (!d.ok) {
+        banner('bad', d.error === 'key' ? '密钥不对，重新扫一次二维码试试。' : ('查询失败：' + (d.error || '未知')));
+        return;
+      }
+      applyData(e, d);
+    })
+    .catch(function (err) {
+      banner('bad', '连不上老人机。检查：域名/端口是否正确、老人机定位服务是否在开、有没有公网 IPv6。（' + (err.message || err) + '）');
+    });
+}
+
+/**
+ * 中继模式下查位置：只问中继，不碰老人机。
+ * 位置是「老人机最后一次上报」的，所以要标清几分钟前 —— 不然家人会以为是即时的。
+ * 想马上要一次，就点「催一次定位」（中继排队，老人机下次上报取走执行，
+ * 执行完它会立刻再上报一次，所以结果通常在下一次上报后的几秒内到）。
+ */
+function queryViaRelay(e, showBusy) {
+  var body = document.getElementById('dResult');
+  var base = (e.base || '').replace(/\/+$/, '');
+  var k = encodeURIComponent(e.token || '');
+  if (!base || !e.token) {
+    banner('bad', '还没配中继地址或令牌');
+    return;
+  }
+  if (showBusy) body.textContent = '正在向中继查询…';
+
+  fetch(base + '/api/status?k=' + k, { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (!j || !j.ok) { banner('bad', '中继拒绝读取（令牌不对？）'); return; }
+      var d = (j.devices || [])[0];
+      if (!d) { banner('bad', '中继上没有这台设备'); return; }
+
+      var t = d.posT || d.lastSeen || 0;
+      if (!d.lat || !t) {
+        banner('warn', '中继还没有这台老人的位置数据。'
+          + '老人的上报开关要开着；想马上要一次就点「催一次定位」。');
+        body.textContent = '';
+        return;
+      }
+      banner('', '');
+      // 中继存的是 WGS84，高德/腾讯地图要 GCJ02；顺手转一份，
+      // 「高德打开」和地图就跟直连模式一致，不会偏几百米
+      var gcj = (typeof wgs2gcj === 'function') ? wgs2gcj(d.lat, d.lon) : null;
+      try {
+        applyData(e, {
+          time: t, lat: d.lat, lng: d.lon, acc: d.acc,
+          battery: d.battery, link: d.wifi ? 'wifi' : (d.mobile ? 'mobile' : ''),
+          gcj_lat: gcj ? gcj[0] : undefined, gcj_lng: gcj ? gcj[1] : undefined
+        });
+      } catch (err2) {
+        // 数据拿到了、只是画图出错。以前这种异常会被外层 catch 成
+        // 「连不上中继」，把人往网络问题上带。
+        banner('warn', '位置拿到了，但显示时出错：' + (err2.message || err2)
+          + '（刷新一下页面试试）');
+        return;
+      }
+      // 位置新鲜度直接写在结果区上方：中继里的数据永远是"最后一次上报"
+      var el = document.getElementById('dResult');
+      if (el) {
+        var ago = fmtAgo(t);
+        var stale = (Date.now() - t) > 30 * 60000;
+        el.innerHTML = '<div class="' + (stale ? 'bad' : 'dim') + '" style="margin-bottom:6px">'
+          + '来自中继 · ' + ago + (stale ? '（超过 30 分钟没更新，可能手机息屏没上报，或者网络断了）' : '')
+          + (d.pendingCmds ? ' · 还有 ' + d.pendingCmds + ' 条命令排队' : '')
+          + ' · ' + (d.fastLink ? '秒级通道已连接' : '秒级通道未连接（命令要等下次上报）')
+          + '</div>' + el.innerHTML;
+      }
+    })
+    .catch(function (err) {
+      banner('bad', '连不上中继：' + esc(err.message || err));
+    });
+}
+
+function applyData(e, d) {
+  lastData = d;
+  // 中继/老人机给的经度可能叫 lon，历史数据也可能缺 lng —— 统一成 lng 再入库，
+  // 否则后续画图、算距离、toFixed 全都会炸
+  var lng = (typeof d.lng === 'number') ? d.lng : d.lon;
+  var gLat = (typeof d.gcj_lat === 'number') ? d.gcj_lat : undefined;
+  var gLng = (typeof d.gcj_lng === 'number') ? d.gcj_lng : undefined;
+  if (typeof gLat === 'number' && typeof gLng !== 'number') { gLat = undefined; }
+  e.last = { t: d.time || Date.now(), lat: d.lat, lng: lng, gcj_lat: gLat, gcj_lng: gLng,
+             acc: d.acc, battery: d.battery, link: d.link };
+  if (!e.history) e.history = [];
+  e.history.push({ t: e.last.t, lat: d.lat, lng: lng, gcj_lat: gLat, gcj_lng: gLng });
+  if (e.history.length > 200) e.history = e.history.slice(-200);
+  saveDB();
+  showResult(e.last);
+  renderHistory();
+  drawMap(e);
+  checkFence(e);
+}
+
+function showResult(last) {
+  var box = document.getElementById('dResult');
+  box.innerHTML = '<div style="font-size:19px;font-weight:700;" class="ok">'
+    + new Date(last.t).toLocaleString() + '</div>'
+    + '精度 ' + Math.round(last.acc || 0) + ' 米　电量 '
+    + (last.battery >= 0 ? last.battery + '%' : '未知')
+    + '<br>坐标 ' + last.lat.toFixed(5) + ', ' + last.lng.toFixed(5);
+}
+
+function banner(kind, text) {
+  var el = document.getElementById('banner');
+  el.innerHTML = text ? ('<div class="banner ' + kind + '">' + esc(text) + '</div>') : '';
+}
+
+/* ================= 地图（Leaflet + 高德瓦片） ================= */
+function initMap(e) {
+  var box = document.getElementById('map');
+  if (typeof L === 'undefined') {
+    box.innerHTML = '<div style="padding:16px;font-size:13px;color:#8a9099">'
+      + '地图组件没加载出来（可能没网）。可以点「高德打开」看。</div>';
+    return;
+  }
+  if (map) {
+    map.remove();
+    map = null; mapMarker = null; mapPath = null;
+    mapFences = []; polyLayer = null; polyMarks = [];
+  }
+  // 还没有任何位置时，地图中心给天安门。
+  // 以前写的是当年测试留下的坐标（安徽业庙乡），新装的人一打开就是一片陌生村子，
+  // 还以为定位定到别处去了。
+  var HOME_POINT = [39.9087, 116.3975];   // 北京 · 天安门
+  var c = e.last ? [e.last.gcj_lat || e.last.lat, e.last.gcj_lng || e.last.lng] : HOME_POINT;
+  map = L.map(box, { zoomControl: true, attributionControl: false }).setView(c, e.last ? 16 : 12);
+  // 高德栅格瓦片：国内速度快，不需要 Key；注意它用 GCJ-02 坐标
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    subdomains: ['1', '2', '3', '4'], maxZoom: 18
+  }).addTo(map);
+
+  // 画多边形时靠它收拐点
+  map.on('click', function (ev) {
+    if (polyMode) polyAdd(ev.latlng);
+  });
+
+  drawMap(e);
+}
+
+function drawMap(e) {
+  if (!map || !e) return;
+  var pts = [];
+  if (e.history) {
+    for (var i = 0; i < e.history.length; i++) {
+      var h = e.history[i];
+      var hp = mapPt(h);
+      if (hp) pts.push(hp);
+    }
+  }
+  if (mapPath) { map.removeLayer(mapPath); mapPath = null; }
+  if (pts.length > 1) {
+    mapPath = L.polyline(pts, { color: '#1976d2', weight: 4, opacity: 0.75 }).addTo(map);
+  }
+  if (e.last) {
+    var p = mapPt(e.last);
+    if (mapMarker) mapMarker.setLatLng(p);
+    else mapMarker = L.circleMarker(p, { radius: 8, color: '#fff', weight: 3, fillColor: '#1b7f4b', fillOpacity: 1 }).addTo(map);
+    map.setView(p, map.getZoom() < 14 ? 16 : map.getZoom());
+  }
+  // 围栏：全部画出来，圆和多边形混着也行
+  for (var k = 0; k < mapFences.length; k++) { map.removeLayer(mapFences[k]); }
+  mapFences = [];
+
+  var fs = fenceList(e);
+  for (var m = 0; m < fs.length; m++) {
+    var f = fs[m];
+    if (f.enabled === false) continue;
+    var col = (f.inside === false) ? '#c62828' : '#1976d2';
+
+    if (f.shape === 'polygon' && f.points && f.points.length >= 3) {
+      var poly = [];
+      for (var q = 0; q < f.points.length; q++) {
+        var wp = mapPt({ lat: f.points[q][0], lng: f.points[q][1] });
+        if (wp) poly.push(wp);
+      }
+      if (poly.length >= 3) {
+        mapFences.push(L.polygon(poly, {
+          color: col, weight: 2, fillOpacity: 0.08
+        }).addTo(map));
+      }
+    } else if (f.radius > 0) {
+      var c = mapPt({ lat: f.lat, lng: f.lng });
+      if (c) {
+        mapFences.push(L.circle(c, {
+          radius: f.radius, color: col, weight: 2, fillOpacity: 0.08
+        }).addTo(map));
+      }
+    }
+  }
+}
+
+/**
+ * 高德打开。
+ *
+ * 之前点了没反应，两种可能都堵死了：
+ *   1) 还没查过位置 → 只有一句 toast，用户不知道要先查
+ *   2) 外部打开失败（没装浏览器 / 被拦）→ window.open 在 WebView 里静默失败
+ * 现在：没位置就直说并顺手查一次；外部打开不成就复制链接并提示。
+ */
+function openAmap() {
+  var e = elder(curId);
+  if (!e) { toast('先在列表里选一位老人'); return; }
+  if (!e.last) { toast('还没有位置，正在查…'); query(true); return; }
+  var lat = e.last.gcj_lat || e.last.lat;
+  var lng = e.last.gcj_lng || e.last.lng;
+  if (!isFinite(lat) || !isFinite(lng)) { toast('位置不完整，重新查一次'); query(true); return; }
+  var url = 'https://uri.amap.com/marker?position=' + lng + ',' + lat
+    + '&name=' + encodeURIComponent((e.name || '老人') + '的位置');
+  var opened = false;
+  try { if (window.Android && Android.openUrl) { Android.openUrl(url); opened = true; } } catch (err) {}
+  if (!opened) { try { window.open(url, '_blank'); opened = true; } catch (err) {} }
+  if (!opened) { copyText(url); toast('打不开地图，链接已复制，粘到浏览器里看'); }
+}
+
+/** 看大地图：滚到地图区并放大（以前和「高德打开」共用一个函数，等于没用） */
+function focusMap() {
+  var e = elder(curId);
+  if (!e) { toast('先在列表里选一位老人'); return; }
+  if (!e.last) { query(true); return; }
+  var box = document.getElementById('map');
+  if (!box) return;
+  if (box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  box.style.height = '60vh';
+  box.style.maxHeight = 'none';
+  try { if (typeof map !== 'undefined' && map) setTimeout(function () { map.invalidateSize(); }, 300); } catch (err) {}
+}
+
+function copyCoords() {
+  var e = elder(curId);
+  if (!e || !e.last) { toast('先查一次位置'); return; }
+  copyText(e.last.lat.toFixed(6) + ',' + e.last.lng.toFixed(6));
+}
+
+/** 「秒级通道」按钮的文案跟着实际连接状态走；直连模式下这两行没意义，直接藏掉 */
+function syncLinkBtn() {
+  var e = elder(curId);
+  var relay = e && e.mode === 'relay';
+  var lr = document.getElementById('linkRow');
+  var vr = document.getElementById('volRow');
+  var vr2 = document.getElementById('volRow2');
+  // 秒级通道只有中继模式有（直连本来就是即时的）
+  if (lr) lr.style.display = relay ? '' : 'none';
+  // 音量两种模式都能用：中继走命令队列，直连直接打老人机的 /cmd
+  if (vr) vr.style.display = '';
+  if (vr2) vr2.style.display = '';
+  var btn = document.getElementById('linkBtn');
+  if (!btn) return;
+  if (!relay) return;
+  btn.textContent = e.fastLink
+    ? '秒级通道：已连接（点击关闭）'
+    : '秒级通道：未连接（点击开启）';
+}
+
+/* ================= 电子围栏 =================
+ *
+ * 两件容易踩的事，先写在最前面：
+ *
+ * 1) 坐标。高德瓦片是 GCJ-02，老人机上报的 lat/lng 是 GPS 原始值（WGS-84）。
+ *    国内两者差 300–700 米，直接把原始坐标画在高德上会偏一条街。
+ *    所以：画地图用 GCJ，存给中继、参与判定用 WGS。
+ *
+ * 2) 多个围栏。以前是单个 e.fence，现在统一成数组：
+ *      中继模式 → 以 NAS 上的为准（e.fencesServer）
+ *      直连模式 → 存在本机（e.fences）
+ *    老数据里的 e.fence 会自动迁移成一条圆围栏。
+ */
+
+function outOfChina(lat, lng) {
+  return !(lng > 73.66 && lng < 135.05 && lat > 3.86 && lat < 53.55);
+}
+function _tLat(x, y) {
+  var r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+  r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+  return r;
+}
+function _tLng(x, y) {
+  var r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+  r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+  return r;
+}
+function gcjDelta(lat, lng) {
+  var a = 6378245.0, ee = 0.00669342162296594323;
+  var dLat = _tLat(lng - 105, lat - 35);
+  var dLng = _tLng(lng - 105, lat - 35);
+  var rad = lat / 180 * Math.PI;
+  var m = Math.sin(rad);
+  m = 1 - ee * m * m;
+  var sq = Math.sqrt(m);
+  dLat = (dLat * 180) / ((a * (1 - ee)) / (m * sq) * Math.PI);
+  dLng = (dLng * 180) / (a / sq * Math.cos(rad) * Math.PI);
+  return [dLat, dLng];
+}
+function wgs2gcj(lat, lng) {
+  if (outOfChina(lat, lng)) return [lat, lng];
+  var d = gcjDelta(lat, lng);
+  return [lat + d[0], lng + d[1]];
+}
+function gcj2wgs(lat, lng) {
+  if (outOfChina(lat, lng)) return [lat, lng];
+  var d = gcjDelta(lat, lng);
+  return [lat - d[0], lng - d[1]];
+}
+/** 分钟 → 人话：45 分钟 / 3 小时 / 2 天 5 小时 */
+function fmtDur(min) {
+  if (min < 60) return Math.round(min) + ' 分钟';
+  var h = min / 60;
+  if (h < 24) return Math.round(h) + ' 小时';
+  var d = Math.floor(h / 24);
+  return d + ' 天 ' + Math.round(h - d * 24) + ' 小时';
+}
+
+/* 一条数据点 → 地图坐标
+ *
+ * 这里必须"怎么缺都能算"：以前只要 gcj_lat 有值就 return [gcj_lat, gcj_lng]，
+ * 遇到老数据只有 gcj_lat、或者字段是 lon 不叫 lng 时，就把 undefined 交给了 Leaflet，
+ * 于是整页弹「Invalid LatLng object: (39.900622, undefined)」，
+ * 还被 catch 成「连不上中继」—— 看起来像网络问题，其实是坐标字段。
+ */
+function mapPt(o) {
+  if (!o) return null;
+  if (typeof o.gcj_lat === 'number' && typeof o.gcj_lng === 'number') {
+    return [o.gcj_lat, o.gcj_lng];
+  }
+  var lat = o.lat, lng = (typeof o.lng === 'number') ? o.lng : o.lon;
+  if (!isFinite(lat) || !isFinite(lng)) return null;
+  var g = wgs2gcj(lat, lng);
+  if (!isFinite(g[0]) || !isFinite(g[1])) return null;
+  return [g[0], g[1]];
+}
+
+/* 取出这个老人的围栏数组，顺便把老的单个 e.fence 迁移过来 */
+function fenceList(e) {
+  if (!e) return [];
+  if (e.mode === 'relay') {
+    var rs = e.fencesServer || [];
+    for (var ri = 0; ri < rs.length; ri++) {
+      if (typeof rs[ri].lng !== 'number') rs[ri].lng = rs[ri].lon;
+    }
+    return rs;
+  }
+  if (!e.fences) {
+    e.fences = [];
+    if (e.fence) {
+      // 老数据存的是 GCJ 坐标，迁到 WGS
+      var w = gcj2wgs(e.fence.lat, e.fence.lng);
+      e.fences.push({
+        id: 'local' + Date.now().toString(36),
+        name: '围栏', shape: 'circle',
+        lat: w[0], lng: w[1], radius: e.fence.radius, enabled: true
+      });
+      delete e.fence;
+      saveDB();
+    }
+  }
+  return e.fences;
+}
+
+function fenceRangeText(f) {
+  if (f.shape === 'polygon' && f.points && f.points.length >= 3) {
+    return '多边形 ' + f.points.length + ' 点';
+  }
+  return '半径 ' + f.radius + ' 米';
+}
+
+function renderFence() {
+  var e = elder(curId);
+  var box = document.getElementById('fenceInfo');
+  if (!e) { box.textContent = '未设置'; return; }
+  var fs = fenceList(e);
+  if (!fs.length) {
+    box.textContent = (e.mode === 'relay') ? '未设置（中继上还没有围栏）' : '未设置';
+    return;
+  }
+  var out = [];
+  for (var i = 0; i < fs.length; i++) {
+    var f = fs[i];
+    var st = (f.inside === false)
+      ? '<span class="bad">已离开</span>'
+      : '<span class="ok">在内</span>';
+    out.push(esc(f.name) + '　' + fenceRangeText(f) + '　' + st
+      + '　<a href="javascript:void(0)" onclick="delFenceById(\'' + f.id + '\')"'
+      + ' style="color:#b42318">删除</a>');
+  }
+  box.innerHTML = out.join('<br>');
+}
+
+/* 保存一条围栏：中继走后端，直连存本机 */
+function saveFenceObj(e, f, done) {
+  if (!e) return;
+  if (e.mode === 'relay') {
+    var body = {
+      name: f.name,
+      lat: f.lat, lon: f.lng,
+      radius: f.radius || 0,
+      shape: f.shape || 'circle',
+      points: f.points || null,
+      enabled: true
+    };
+    if (f.id) body.id = f.id;
+    fetch(e.base + '/api/fence?k=' + encodeURIComponent(e.token), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (x) { return x.json(); })
+      .then(function (j) {
+        if (!j.ok) { toast(j.error || '保存失败'); return; }
+        toast('已同步到中继');
+        syncElderRelay(e, function () {
+          saveDB(); renderFence(); drawMap(e);
+          if (done) done();
+        });
+      })
+      .catch(function () { toast('保存失败，检查中继地址'); });
+    return;
+  }
+
+  if (!e.fences) e.fences = [];
+  if (!f.id) f.id = 'f' + Date.now().toString(36);
+  var replaced = false;
+  for (var i = 0; i < e.fences.length; i++) {
+    if (e.fences[i].id === f.id) { e.fences[i] = f; replaced = true; break; }
+  }
+  if (!replaced) e.fences.push(f);
+  if (e.fenceState) delete e.fenceState[f.id];
+  saveDB(); renderFence(); drawMap(e);
+  if (done) done();
+}
+
+/* 圆形围栏：以当前位置为圆心 */
+function addCircleFence() {
+  var e = elder(curId);
+  if (!e) return;
+  if (!e.last) { toast('先查一次位置，再设围栏'); return; }
+  var name = prompt('围栏名字（例如：家、乡镇街）', '家');
+  if (name === null) return;
+  var r = prompt('半径（米）', 500);
+  if (r === null) return;
+  var radius = parseInt(r, 10);
+  if (!radius || radius < 50) { toast('半径至少 50 米'); return; }
+  saveFenceObj(e, {
+    name: (name || '围栏').trim() || '围栏',
+    shape: 'circle',
+    lat: e.last.lat, lng: e.last.lng,
+    radius: radius, enabled: true
+  });
+}
+
+/* ===== 多边形围栏：在地图上点拐点 ===== */
+function startPoly() {
+  var e = elder(curId);
+  if (!e) return;
+  if (!map) { toast('地图还没加载出来，等一下再试'); return; }
+  if (!e.last) { toast('先查一次位置，让地图定位到这里'); return; }
+  polyMode = true;
+  polyPts = [];
+  document.getElementById('polyBar').classList.remove('hidden');
+  updatePolyHint();
+  try { map.getContainer().style.cursor = 'crosshair'; } catch (err) {}
+  toast('在地图上依次点围栏的拐点');
+}
+
+function updatePolyHint() {
+  var el = document.getElementById('polyHint');
+  if (!el) return;
+  el.textContent = polyPts.length
+    ? ('已选 ' + polyPts.length + ' 个点（至少 3 个）。继续点，或按「完成」')
+    : '在地图上依次点选拐点';
+}
+
+function clearPolyLayers() {
+  if (polyLayer && map) { map.removeLayer(polyLayer); }
+  polyLayer = null;
+  for (var i = 0; i < polyMarks.length; i++) {
+    if (map) map.removeLayer(polyMarks[i]);
+  }
+  polyMarks = [];
+}
+
+function redrawPoly() {
+  if (!map) return;
+  clearPolyLayers();
+  if (!polyPts.length) return;
+  if (polyPts.length >= 2) {
+    polyLayer = L.polygon(polyPts, {
+      color: '#b42318', weight: 2, dashArray: '5,4', fillOpacity: 0.12
+    }).addTo(map);
+  }
+  for (var i = 0; i < polyPts.length; i++) {
+    polyMarks.push(L.circleMarker(polyPts[i], {
+      radius: 5, color: '#b42318', weight: 2, fillColor: '#fff', fillOpacity: 1
+    }).addTo(map));
+  }
+}
+
+function polyAdd(latlng) {
+  if (!polyMode) return;
+  polyPts.push([latlng.lat, latlng.lng]);
+  redrawPoly();
+  updatePolyHint();
+}
+
+function polyUndo() {
+  if (!polyMode || !polyPts.length) return;
+  polyPts.pop();
+  redrawPoly();
+  updatePolyHint();
+}
+
+function polyCancel() {
+  polyMode = false;
+  polyPts = [];
+  clearPolyLayers();
+  var bar = document.getElementById('polyBar');
+  if (bar) bar.classList.add('hidden');
+  if (map) { try { map.getContainer().style.cursor = ''; } catch (err) {} }
+}
+
+function polyFinish() {
+  var e = elder(curId);
+  if (!polyMode || !e) return;
+  if (polyPts.length < 3) { toast('至少要点 3 个拐点'); return; }
+  var name = prompt('这个围栏叫什么（例如：镇上、菜市场）', '围栏');
+  if (name === null) return;
+
+  // 图纸上是 GCJ，存下来的是 WGS
+  var pts = [], sLat = 0, sLng = 0;
+  for (var i = 0; i < polyPts.length; i++) {
+    var w = gcj2wgs(polyPts[i][0], polyPts[i][1]);
+    pts.push([w[0], w[1]]);
+    sLat += w[0]; sLng += w[1];
+  }
+  saveFenceObj(e, {
+    name: (name || '围栏').trim() || '围栏',
+    shape: 'polygon',
+    points: pts,
+    lat: sLat / pts.length,
+    lng: sLng / pts.length,
+    radius: 0,
+    enabled: true
+  });
+  polyCancel();
+}
+
+function delFenceById(id) {
+  var e = elder(curId);
+  if (!e) return;
+  if (!confirm('删除这个围栏？')) return;
+
+  if (e.mode === 'relay') {
+    fetch(e.base + '/api/fence?id=' + encodeURIComponent(id)
+      + '&k=' + encodeURIComponent(e.token), { method: 'DELETE' })
+      .then(function () { return 0; })
+      .then(function () {
+        toast('已删除');
+        syncElderRelay(e, function () {
+          saveDB(); renderFence(); drawMap(e); banner('', '');
+        });
+      })
+      .catch(function () { toast('删除失败'); });
+    return;
+  }
+
+  var kept = [];
+  for (var i = 0; i < (e.fences || []).length; i++) {
+    if (e.fences[i].id !== id) kept.push(e.fences[i]);
+  }
+  e.fences = kept;
+  if (e.fenceState) delete e.fenceState[id];
+  saveDB(); renderFence(); drawMap(e); banner('', '');
+}
+
+/* 点是否在多边形内（射线法） */
+function pointInPoly(poly, lat, lng) {
+  var inside = false;
+  for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    var yi = poly[i][0], xi = poly[i][1];
+    var yj = poly[j][0], xj = poly[j][1];
+    if ((yi > lat) !== (yj > lat)) {
+      if (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/* 单个围栏的判定：1 内 / -1 外 / 0 说不准 */
+function fenceTest(f, lat, lng, acc) {
+  if (f.enabled === false) return 0;
+  if (f.shape === 'polygon' && f.points && f.points.length >= 3) {
+    var inPoly = pointInPoly(f.points, lat, lng);
+    // 多边形没有"半径"可比，精度太差就干脆不判
+    if (acc > 400) return 0;
+    return inPoly ? 1 : -1;
+  }
+  var r = f.radius || 0;
+  if (r <= 0) return 0;
+  var d = distanceM(f.lat, f.lng, lat, lng);
+  if (d - acc > r) return -1;
+  if (d + acc < r) return 1;
+  return 0;
+}
+
+function distanceM(lat1, lng1, lat2, lng2) {
+  var R = 6371000, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* 本地兜底判定：只用来给界面提示，真正的告警在后台服务和中继上。
+ * 规则和后台一致：精度不够不判、连续两次在外才认，避免单点漂移。 */
+function checkFence(e) {
+  var fs = fenceList(e);
+  if (!fs.length || !e.last) return;
+  var lat = e.last.lat;
+  var lng = (typeof e.last.lng === 'number') ? e.last.lng : e.last.lon;
+  var acc = e.last.acc || 0;
+  if (!isFinite(lat) || !isFinite(lng)) return;
+  if (!e.fenceState) e.fenceState = {};
+
+  var awayName = null;
+  for (var i = 0; i < fs.length; i++) {
+    var f = fs[i];
+    var v = fenceTest(f, lat, lng, acc);
+    if (v === 0) continue;
+
+    var st = e.fenceState[f.id];
+    if (!st) { st = e.fenceState[f.id] = { inside: v > 0, hits: 0 }; continue; }
+
+    if (v < 0) {
+      st.hits = (st.hits || 0) + 1;
+      if (st.inside && st.hits >= 2) { st.inside = false; st.hits = 0; }
+      if (!st.inside) awayName = f.name;
+    } else {
+      st.hits = 0;
+      st.inside = true;
+    }
+  }
+  saveDB();
+  renderFence();
+  if (awayName) banner('warn', '⚠ 已离开「' + awayName + '」');
+  else banner('', '');
+}
+
+function toggleAuto() {
+  var btn = document.getElementById('autoBtn');
+  if (autoTimer) {
+    stopAuto();
+    return;
+  }
+  query(false);
+  autoTimer = setInterval(function () { query(false); }, 60000);
+  btn.textContent = '停止自动查';
+  btn.classList.remove('ghost');
+  toast('已开始每分钟自动查询（仅在本页有效）');
+}
+
+function stopAuto() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  var btn = document.getElementById('autoBtn');
+  if (btn) { btn.textContent = '自动查（1 分钟）'; btn.classList.add('ghost'); }
+}
+
+/* ================= 路径 ================= */
+function renderHistory() {
+  var e = elder(curId);
+  var sum = document.getElementById('pathSummary');
+  var list = document.getElementById('histList');
+  if (!e || !e.history || !e.history.length) {
+    sum.textContent = '还没有记录';
+    list.innerHTML = '';
+    return;
+  }
+  var total = 0;
+  for (var i = 1; i < e.history.length; i++) {
+    var a = e.history[i - 1], b = e.history[i];
+    if (!a || !b || !isFinite(a.lat) || !isFinite(b.lat)) continue;
+    total += distanceM(a.lat, a.lng, b.lat, b.lng);
+  }
+  sum.innerHTML = '共 <b>' + e.history.length + '</b> 个点，累计移动约 <b>'
+    + (total >= 1000 ? (total / 1000).toFixed(2) + ' 公里' : Math.round(total) + ' 米') + '</b>';
+
+  var html = '';
+  var drawn = 0;
+  for (var j = e.history.length - 1; j >= 0 && drawn < 40; j--) {
+    var h = e.history[j];
+    if (!h || !isFinite(h.lat) || !isFinite(h.lng)) continue;   // 坏点直接跳过，别让整页白掉
+    drawn++;
+    html += '<div><span>' + new Date(h.t).toLocaleString() + '</span><span>'
+      + h.lat.toFixed(4) + ', ' + h.lng.toFixed(4) + '</span></div>';
+  }
+  list.innerHTML = html;
+}
+
+function clearHistory() {
+  var e = elder(curId);
+  if (!e) return;
+  if (!confirm('清空这个老人的路径记录？')) return;
+  e.history = [];
+  saveDB(); renderHistory(); drawMap(e);
+}
+
+/* ================= 添加 / 扫码 ================= */
+function addMenu() {
+  var panel = document.getElementById('addPanel');
+  panel.innerHTML = '<div class="row" style="margin-bottom:8px">'
+    + '<button onclick="scanNow()">相机扫码</button>'
+    + '<button class="ghost" onclick="scanGallery()">相册选图</button>'
+    + '<button class="ghost" onclick="startEdit(null)">手动填写</button>'
+    + '</div>'
+    + '<div class="tip">扫老人机上「设置 → 远程访问」的二维码，地址、端口、密钥一次到位；'
+    + '家里人发来的二维码截图，用「相册选图」也能识别。</div>';
+}
+
+function scanNow() {
+  if (window.Android && Android.scan) Android.scan();
+  else toast('扫码要在家人端 App 里用');
+}
+
+function scanGallery() {
+  if (window.Android && Android.pickImage) Android.pickImage();
+  else toast('相册选图要在家人端 App 里用');
+}
+
+/* 解析 URI 里的查询串（二维码参数用） */
+function qs(u) {
+  var out = {}, i = u.indexOf('?');
+  if (i < 0) return out;
+  var parts = u.substring(i + 1).split('&');
+  for (var k = 0; k < parts.length; k++) {
+    if (!parts[k]) continue;
+    var kv = parts[k].split('=');
+    var key = kv[0];
+    var val = (kv[1] || '').replace(/\+/g, ' ');
+    try { key = decodeURIComponent(key); } catch (e) { }
+    try { val = decodeURIComponent(val); } catch (e) { }
+    out[key] = val;
+  }
+  return out;
+}
+
+/** 扫码结果：elderguard://relay（中继）、elderguard://loc（老人机）或 http 链接 */
+window.onScanResult = function (text) {
+  // 中继首页的二维码：elderguard://relay?base=...&k=...&n=...
+  if (/^elderguard:\/\/relay/i.test(text)) {
+    var q = qs(text);
+    if (!q.base || !q.k) { toast('中继二维码缺内容'); return; }
+
+    var nm = prompt('这位老人怎么称呼？', q.n || '');
+    if (nm === null) return;
+
+    var rec = null;
+    for (var i = 0; i < db.elders.length; i++) {
+      if (db.elders[i].mode === 'relay' && db.elders[i].base === q.base) {
+        rec = db.elders[i];
+        break;
+      }
+    }
+    if (rec) {
+      rec.token = q.k;
+      rec.name = nm || rec.name;
+    } else {
+      rec = { id: uid(), name: nm || q.n || '未命名', mode: 'relay',
+              base: q.base, token: q.k, history: [] };
+      db.elders.push(rec);
+    }
+    saveDB();
+    document.getElementById('addPanel').innerHTML = '';
+    renderList();
+    openElder(rec.id);
+    syncElder(rec, function () { saveDB(); renderList(); });
+    toast('已添加，正在从中继同步');
+    return;
+  }
+
+  var cfg = parseQr(text);
+  if (!cfg.host) { toast('这个二维码不认识'); return; }
+  if (editId) {
+    var cur = elder(editId);
+    if (cur) {
+      cur.host = cfg.host;
+      cur.port = cfg.port || cur.port;
+      if (cfg.key) cur.key = cfg.key;
+      saveDB();
+      document.getElementById('fHost').value = cur.host + (cur.port ? ':' + cur.port : '');
+      document.getElementById('fKey').value = cur.key;
+      toast('已填好，记得点保存');
+    }
+    return;
+  }
+  var name = prompt('这位老人怎么称呼？（例如：妈）', '');
+  if (name === null) return;
+  var e = { id: uid(), name: name || '未命名', host: cfg.host, port: cfg.port || '8899',
+            key: cfg.key || '', history: [] };
+  db.elders.push(e);
+  saveDB();
+  document.getElementById('addPanel').innerHTML = '';
+  renderList();
+  openElder(e.id);
+  query(true);
+};
+
+function parseQr(text) {
+  var out = { host: '', port: '', key: '' };
+  text = (text || '').trim();
+  try {
+    if (text.indexOf('elderguard://') === 0) {
+      var q = text.split('?')[1] || '';
+      q.split('&').forEach(function (kv) {
+        var i = kv.indexOf('=');
+        if (i < 0) return;
+        var k = kv.substring(0, i), v = decodeURIComponent(kv.substring(i + 1));
+        if (k === 'host') out.host = v;
+        if (k === 'port') out.port = v;
+        if (k === 'key') out.key = v;
+      });
+    } else if (/^https?:\/\//.test(text)) {
+      var m = text.match(/^https?:\/\/(\[[^\]]+\]|[^\/:]+)(?::(\d+))?/);
+      if (m) {
+        out.host = m[1].replace(/^\[|\]$/g, '');
+        out.port = m[2] || '8899';
+      }
+      var km = text.match(/[?&]key=([^&]+)/);
+      if (km) out.key = decodeURIComponent(km[1]);
+    }
+  } catch (e) {}
+  return out;
+}
+
+function startEdit(id) {
+  editId = id;
+  var e = id ? elder(id) : null;
+  document.getElementById('viewList').classList.add('hidden');
+  document.getElementById('viewDetail').classList.add('hidden');
+  document.getElementById('viewEdit').classList.remove('hidden');
+  document.getElementById('fName').value = e ? (e.name || '') : '';
+  var isRelay = !e || e.mode === 'relay';
+  // 直连的地址把端口并进同一个输入框（不再单独维护端口）
+  document.getElementById('fHost').value = (!isRelay && e)
+    ? ((e.host || '') + (e.port ? ':' + e.port : '')) : '';
+  document.getElementById('fKey').value = (!isRelay && e) ? (e.key || '') : '';
+  document.getElementById('fBase').value = (isRelay && e) ? (e.base || '') : '';
+  document.getElementById('fToken').value = (isRelay && e) ? (e.token || '') : '';
+  // 以前这里不调 setMode，编辑中继记录时表单还停在上一次选的模式上
+  setMode(isRelay ? 'relay' : 'direct');
+}
+
+function cancelEdit() {
+  editId = null;
+  document.getElementById('viewEdit').classList.add('hidden');
+  if (curId) document.getElementById('viewDetail').classList.remove('hidden');
+  else document.getElementById('viewList').classList.remove('hidden');
+}
+
+/* ===== 连接方式：直连老人机 / 走 NAS 中继 ===== */
+var editMode = 'direct';
+
+function setMode(m) {
+  editMode = m;
+  document.getElementById('boxDirect').classList.toggle('hidden', m !== 'direct');
+  document.getElementById('boxRelay').classList.toggle('hidden', m !== 'relay');
+  document.getElementById('mDirect').classList.toggle('ghost', m !== 'direct');
+  document.getElementById('mRelay').classList.toggle('ghost', m !== 'relay');
+  document.getElementById('modeHint').textContent = m === 'relay'
+    ? '走服务器：能做电子围栏告警，老人出门也能用；也能远程调音量、存快照。'
+    : '直连老人机：最省电，但只有你点查询时才知道位置；需要老人机开着「定位服务」并有公网地址。';
+}
+
+/** 存成服务器模式（两种入口共用：手动填、或者填了个 https 地址被自动识别） */
+function saveAsRelay(name, base, token) {
+  base = (base || '').trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(base)) base = 'https://' + base;
+  var target = editId ? elder(editId) : null;
+  if (!target) {
+    target = { id: uid(), name: name || '未命名', history: [] };
+    db.elders.push(target);
+  }
+  target.mode = 'relay';
+  target.base = base;
+  target.token = token;
+  target.name = name || target.name;
+  delete target.host;
+  delete target.port;
+  delete target.key;
+  delete target.fence;
+
+  saveDB();
+  editId = null;
+  backToList();
+  syncElder(target, function () { saveDB(); renderList(); });
+}
+
+function saveEdit() {
+  var name = document.getElementById('fName').value.trim();
+
+  if (editMode === 'relay') {
+    var base = document.getElementById('fBase').value.trim();
+    var token = document.getElementById('fToken').value.trim();
+    if (!base || !token) { toast('服务器地址和令牌都要填'); return; }
+    saveAsRelay(name, base, token);
+    return;
+  }
+
+  var rawHost = document.getElementById('fHost').value.trim();
+  var key = document.getElementById('fKey').value.trim();
+  if (!rawHost || !key) { toast('地址和密钥都要填'); return; }
+  var a = splitAddr(rawHost, '8899');
+
+  // 填了 https:// 的一定是服务器 —— 老人机的定位服务是明文 http，没有证书。
+  // 以前这里硬按直连存，家人点查询就报「连不上老人机」，其实地址填的是服务器。
+  if (a.scheme === 'https') {
+    saveAsRelay(name, 'https://' + a.host + (a.port ? ':' + a.port : ''), key);
+    toast('这个地址是服务器，已按「服务器」保存');
+    return;
+  }
+
+  if (editId) {
+    var e = elder(editId);
+    e.host = a.host; e.port = a.port; e.key = key; e.name = name || e.name;
+    e.mode = 'direct';
+    delete e.base;
+    delete e.token;
+    saveDB(); editId = null; backToList();
+  } else {
+    var ne = { id: uid(), name: name || '未命名', mode: 'direct',
+               host: a.host, port: a.port, key: key, history: [] };
+    db.elders.push(ne);
+    saveDB(); backToList();
+  }
+}
+
+function renameElder() {
+  var e = elder(curId);
+  if (!e) return;
+  var n = prompt('称呼', e.name || '');
+  if (n === null) return;
+  e.name = n || e.name;
+  saveDB();
+  document.getElementById('dName').textContent = e.name;
+  renderList();
+}
+
+function removeElder() {
+  var e = elder(curId);
+  if (!e) return;
+  if (!confirm('删除「' + (e.name || '未命名') + '」及其路径记录？')) return;
+  db.elders = db.elders.filter(function (x) { return x.id !== curId; });
+  saveDB();
+  backToList();
+}
+
+/* ================= 地址脱敏 ================= */
+/** 界面上不显示完整域名/端口，避免截图外泄后被直接访问 */
+function maskHost(e) {
+  if (e.mode === 'relay') {
+    var b = (e.base || '').replace(/^https?:\/\//, '').split('/')[0];
+    return '中继 ' + b;
+  }
+  var h = (e.host || '').replace(/^https?:\/\//, '');
+  var shown;
+  if (h.indexOf(':') >= 0) {
+    // IPv6：只留第一段
+    shown = h.split(':')[0] + ':****';
+  } else {
+    var parts = h.split('.');
+    if (parts.length >= 2) {
+      var head = parts[0];
+      shown = (head.length > 3 ? head.slice(0, 3) + '***' : head + '***')
+        + '.' + parts[parts.length - 1];
+    } else {
+      shown = h.slice(0, 3) + '***';
+    }
+  }
+  return shown + '　端口已隐藏';
+}
+
+/* ================= 体检 ================= */
+function loadStatus() {
+  var e = elder(curId);
+  if (!e) return;
+  var box = document.getElementById('status');
+  box.textContent = '正在读取…';
+
+  // 中继模式：只能问 NAS 要"最后一次上报时落库"的数据。
+  // 以前这里不分模式，直接去连老人机的 host，中继用户点「体检」永远是"连不上"。
+  if (e.mode === 'relay') {
+    var base = (e.base || '').replace(/\/+$/, '');
+    var k = encodeURIComponent(e.token || '');
+    if (!base || !e.token) {
+      box.innerHTML = '<span class="bad">还没配中继地址或令牌</span>';
+      return;
+    }
+    fetch(base + '/api/status?k=' + k, { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) { box.innerHTML = '<span class="bad">中继拒绝读取（令牌不对？）</span>'; return; }
+        var d = (j.devices || [])[0];
+        if (!d) { box.innerHTML = '<span class="bad">中继上没有这台设备</span>'; return; }
+        // 中继现在会把老人端状态整包透出来（音量/存储/内存/温度/开机时长），
+        // 以前这里只手挑 6 个字段，所以"体检"永远只有电量和网络两行。
+        renderStatusPanel(d, d);
+      })
+      .catch(function (err) {
+        box.innerHTML = '<span class="bad">连不上中继（' + esc(err.message || err) + '）</span>';
+      });
+    return;
+  }
+
+  var url = apiUrl(e).replace('/loc?', '/status?');
+  fetch(url, { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (s) {
+      if (!s.ok) { box.innerHTML = '<span class="bad">读取失败：' + esc(s.error || '未知') + '</span>'; return; }
+      renderStatusPanel(s, null);
+    })
+    .catch(function (err) {
+      box.innerHTML = '<span class="bad">连不上老人机（' + esc(err.message || err) + '）</span>';
+    });
+}
+
+/* ===== 远程命令（健康检测 / 恢复布局 / 存快照）=====
+ * 老人机在内网、没有公网入口，中继连不进去，所以不做"推送"：
+ * 命令先入中继队列，老人端下一次上报时取走执行，结果再随下一次上报带回来。
+ * 点完不会立刻有结果 —— 最多等一个上报间隔（默认 10 分钟），断网也不丢。
+ */
+function sendCmd(cmd, arg) {
+  var e = elder(curId);
+  if (!e) return;
+  if (e.mode !== 'relay') {
+    // 直连模式：老人机的 /cmd 是同步执行的，发完立刻有结果
+    var boxD = document.getElementById('cmdResult');
+    if (cmd === 'locate' && !confirm('让老人机马上定一次位？')) return;
+    if (boxD) boxD.innerHTML = '<span class="dim">正在执行…</span>';
+    directCmd(e, cmd, arg).then(function (j) {
+      if (!boxD) return;
+      if (!j || !j.ok) {
+        boxD.innerHTML = '<span class="bad">没成功</span>　'
+          + esc((j && j.msg) || '老人机没回应');
+      } else {
+        boxD.innerHTML = '<span class="ok">执行成功</span>　'
+          + esc(j.msg || '').replace(/\n/g, '<br>')
+          + '<br><span class="dim">' + fmtTime(Date.now()) + '　直连</span>';
+      }
+      if (cmd === 'locate' || cmd === 'volume') query(false);
+    }).catch(function (err) {
+      if (!boxD) return;
+      boxD.innerHTML = '<span class="bad">连不上老人机：' + esc(err.message || err) + '</span>'
+        + '<br><span class="dim">检查地址端口、「定位服务」是否开着、有没有公网地址。</span>';
+    });
+    return;
+  }
+  var base = (e.base || '').replace(/\/+$/, '');
+  var k = encodeURIComponent(e.token || '');
+  if (!base || !e.token) { alert('还没配中继地址或令牌'); return; }
+
+  if (cmd === 'locate' && !confirm('让老人机马上定一次位？\n\n连着快通道时几秒内就回来；'
+      + '没连上就要等下次上报。')) return;
+
+  var box = document.getElementById('cmdResult');
+  if (box) box.innerHTML = '<span class="dim">正在下发…</span>';
+
+  fetch(base + '/api/cmd?k=' + k, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: cmd, arg: arg || '' })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j || !j.ok) {
+      if (box) box.innerHTML = '<span class="bad">下发失败：'
+        + esc((j && (j.error || j.msg)) || '未知') + '</span>';
+      return;
+    }
+    var link = !!j.fastLink;
+    var eta = link
+      ? '老人端已连上，几秒内执行'
+      : ('老人端没连上，等下次上报' + (j.interval ? '（约 ' + j.interval + ' 分钟）' : ''));
+    var head = j.dup ? '这条命令已经在队列里，没有重复下发' : '已下发';
+    if (box) {
+      box.innerHTML = '<span class="ok">' + head + '</span>　' + eta
+        + (j.pending > 1
+            ? '　<a href="javascript:void(0)" onclick="clearCmds()">清空排队（' + j.pending + '）</a>'
+            : '')
+        + '<br><span class="dim" id="cmdWait">' + (link ? '等执行结果…' : '') + '</span>';
+    }
+    pollCmd(e, j.id);
+  }).catch(function (err) {
+    if (box) box.innerHTML = '<span class="bad">连不上中继：' + esc(err.message || err) + '</span>';
+  });
+}
+
+/** 连点堆了一堆命令时一键清空 */
+function clearCmds() {
+  var e = elder(curId);
+  if (!e) return;
+  var base = (e.base || '').replace(/\/+$/, '');
+  fetch(base + '/api/cmd/clear?k=' + encodeURIComponent(e.token || ''), { method: 'POST' })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      var box = document.getElementById('cmdResult');
+      if (j && j.ok) {
+        if (box) box.innerHTML = '<span class="ok">已清空 ' + j.cleared + ' 条排队命令</span>';
+        toast('已清空 ' + j.cleared + ' 条');
+      } else {
+        if (box) box.innerHTML = '<span class="bad">清空失败</span>';
+      }
+    })
+    .catch(function () { toast('清空失败，检查中继'); });
+}
+
+/**
+ * 下发后盯结果。
+ * 以前下发完只留一句"等下次上报（最多 10 分钟）"，家人不知道到底有没有执行；
+ * 现在连着快通道就两秒一次地看，拿到结果立刻刷到页面上。
+ */
+function waitCmd(e, id, cb) {
+  if (!id) return;
+  var base = (e.base || '').replace(/\/+$/, '');
+  var k = encodeURIComponent(e.token || '');
+  var tries = 0;
+  function tick() {
+    tries++;
+    fetch(base + '/api/status?k=' + k, { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var d = (j && j.ok && j.devices || [])[0];
+        if (!d) return;
+        var r = d.cmdResult;
+        if (r && r.id === id) { cb(r); return; }
+        if (tries < 30) setTimeout(tick, 2000);
+        else cb(null);
+      })
+      .catch(function () { if (tries < 30) setTimeout(tick, 3000); });
+  }
+  setTimeout(tick, 1200);
+}
+
+function pollCmd(e, id) {
+  if (!id) return;
+  waitCmd(e, id, function (r) {
+    if (!r) {
+      var w = document.getElementById('cmdWait');
+      if (w) w.innerHTML = '还没收到执行结果。老人端可能没连上中继，点「体检」看最后一包。';
+      return;
+    }
+    var box = document.getElementById('cmdResult');
+    if (box) {
+      // 体检结果是多行的（正常项 + 缺少项），必须换行显示，否则挤成一坨
+      box.innerHTML = (r.ok ? '<span class="ok">执行成功</span>' : '<span class="bad">没成功</span>')
+        + '　' + esc(r.msg || '').replace(/\n/g, '<br>')
+        + '<br><span class="dim">' + fmtTime(r.at) + '</span>';
+    }
+    var ee = elder(curId);
+    if (ee) {
+      syncElderRelay(ee, function () {
+        saveDB();
+        if (curId) { renderFence(); drawMap(elder(curId)); }
+      });
+    }
+  });
+}
+
+/* ================= 历史快照 ================= */
+
+function openSnaps() {
+  var e = elder(curId);
+  if (!e) return;
+  var card = document.getElementById('snapCard');
+  if (card) card.classList.remove('hidden');
+  renderSnapList(e);
+  if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // 中继模式下顺手拉一次最新的（列表是随上报带上来的，可能比现在旧）
+  if (e.mode === 'relay') {
+    syncElderRelay(e, function () {
+      saveDB();
+      renderSnapList(elder(curId));
+    });
+  } else {
+    // 直连：直接问老人机要列表
+    directCmd(e, 'snaps').then(function (j) {
+      if (j && j.ok && j.snaps) {
+        var ee = elder(curId);
+        if (ee) { ee.snaps = j.snaps; saveDB(); }
+      }
+      renderSnapList(elder(curId));
+    }).catch(function () {
+      var box = document.getElementById('snapList');
+      if (box) box.innerHTML = '<span class="bad">读不到快照列表，检查老人机是否在线。</span>';
+    });
+  }
+}
+
+function closeSnaps() {
+  var card = document.getElementById('snapCard');
+  if (card) card.classList.add('hidden');
+}
+
+function renderSnapList(e) {
+  var box = document.getElementById('snapList');
+  if (!box) return;
+  var list = (e && e.snaps) || [];
+  if (!list.length) {
+    box.innerHTML = '<span class="dim">还没有快照。点「存快照」存一份，以后能恢复回来。</span>';
+    return;
+  }
+  var out = [];
+  for (var i = 0; i < list.length; i++) {
+    var sn = list[i];
+    out.push('<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #eef0f2">'
+      + '<span style="flex:1;min-width:0">' + esc(sn.name || '快照')
+      + '<br><span class="dim">' + (sn.at ? fmtTime(sn.at) : '时间未知')
+      + (sn.auto ? '　（自动，不能删）' : '') + '</span></span>'
+      + '<button class="small ghost" onclick="snapShow(\'' + esc(sn.id) + '\')">查看</button>'
+      + '<button class="small" onclick="restoreSnap(\'' + esc(sn.id) + '\')">恢复</button>'
+      + (sn.auto ? '' : '<button class="small ghost" onclick="delSnap(\'' + esc(sn.id) + '\')">删</button>')
+      + '</div>');
+  }
+  box.innerHTML = out.join('');
+}
+
+/** 看一份快照里的配置（只读） */
+function snapShow(id) {
+  var e = elder(curId);
+  if (!e) return;
+  var box = document.getElementById('snapDetail');
+  if (box) box.innerHTML = '<span class="dim">正在读取快照…</span>';
+  if (e.mode !== 'relay') {
+    directCmd(e, 'snapshow', id).then(function (j) {
+      if (!box) return;
+      box.innerHTML = (j && j.ok ? '' : '<span class="bad">读不到：</span>')
+        + esc((j && j.msg) || '老人机没回应').replace(/\n/g, '<br>');
+    }).catch(function (err) {
+      if (box) box.innerHTML = '<span class="bad">连不上老人机：' + esc(err.message || err) + '</span>';
+    });
+    return;
+  }
+  var base = (e.base || '').replace(/\/+$/, '');
+  fetch(base + '/api/cmd?k=' + encodeURIComponent(e.token || ''), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: 'snapshow', arg: id })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j || !j.ok) {
+      if (box) box.innerHTML = '<span class="bad">下发失败：' + esc((j && j.error) || '未知') + '</span>';
+      return;
+    }
+    waitCmd(e, j.id, function (r) {
+      if (!box) return;
+      if (!r) {
+        box.innerHTML = '<span class="dim">老人端还没回结果（没连上时要等下次上报）。</span>';
+        return;
+      }
+      box.innerHTML = (r.ok ? '' : '<span class="bad">读不到：</span>')
+        + esc(r.msg || '').replace(/\n/g, '<br>');
+    });
+  }).catch(function (err) {
+    if (box) box.innerHTML = '<span class="bad">连不上中继：' + esc(err.message || err) + '</span>';
+  });
+}
+
+/** 秒级通道开关：中继远程控制老人端的长连接 */
+function toggleFastLink() {
+  var e = elder(curId);
+  if (!e) return;
+  var on = !!e.fastLink;
+  if (on && !confirm('关掉秒级通道？\n\n关掉后命令要等下次上报才执行（可能几分钟），'
+      + '省一点电和流量。')) return;
+  sendCmd('fastlink', on ? 'off' : 'on');
+}
+
+function saveSnapAsk() {
+  var e = elder(curId);
+  if (!e) return;
+  var d = new Date();
+  var def = '手工 ' + (d.getMonth() + 1) + '-' + d.getDate() + ' '
+    + (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+  var name = prompt('给这份快照起个名字（例如：刚配好定位 / 换卡前）', def);
+  if (name === null) return;
+  sendCmd('save', (name || '').trim());
+}
+
+function restoreSnap(id) {
+  if (!confirm('把手机配置恢复到这份快照？\n\n桌面卡片、锁定开关、报时都会跟着回退；'
+      + '上报地址保持不变，不会失联。')) return;
+  sendCmd('restore', id);
+}
+
+function delSnap(id) {
+  if (!confirm('删掉这份快照？删了就找不回来了。')) return;
+  sendCmd('snapdel', id);
+}
+
+/**
+ * 把 /status 的结果画成几行字。
+ * 中继模式没有屏幕/音量/存储这些字段，缺的就跳过，不显示"关""0"这种假值。
+ */
+function renderStatusPanel(s, relayDev) {
+  var box = document.getElementById('status');
+  var lines = [];
+
+  // 电量必须带采样时间：上报是每 10 分钟一次，手机在充电时差得更多，
+  // 不写清"这是几点测的"，家人一定会觉得是读数不准。
+  var batTxt = (s.battery >= 0 ? s.battery + '%' : '未知');
+  if (s.battery >= 0 && s.batteryT) {
+    batTxt += '　<span class="dim">（' + fmtClock(s.batteryT) + ' 测，' + fmtAgo(s.batteryT) + '）</span>';
+  }
+  lines.push('电量 <b>' + batTxt + '</b>'
+    + (s.charging ? '　<span class="ok">正在充电</span>' : '　<span class="bad">未充电</span>'));
+
+  var netTxt = s.wifi ? ('WiFi ' + (s.wifiName || '')) : (s.mobile ? '移动数据' : '离线');
+  if (s.intranet && s.netFlag === 'no_wifi') {
+    netTxt += '　<span class="bad">没连上 WIFI</span>';
+  }
+  if (s.screenOn !== undefined) {
+    lines.push('屏幕：' + (s.screenOn ? '亮着' : '灭着') + '　网络：' + netTxt);
+  } else {
+    lines.push('网络：' + netTxt);
+  }
+  if (s.intranet) {
+    lines.push('内网 WIFI 模式（不插卡）　IPv6：'
+      + (s.ipv6 ? esc(s.ipv6) : '<span class="bad">没有下发</span>'));
+  }
+  if (s.ringVolume !== undefined || s.volMusic !== undefined) {
+    var v = [];
+    if (s.ringVolume !== undefined) {
+      v.push('铃声 ' + s.ringVolume + '/' + s.ringMax
+        + (s.ringVolume === 0 ? ' <span class="bad">接不到电话</span>' : ''));
+    }
+    if (s.volMusic !== undefined) {
+      v.push('媒体 ' + s.volMusic + '/' + s.volMusicMax
+        + (s.volMusic === 0 ? ' <span class="bad">听不到声音</span>' : ''));
+    }
+    if (s.ringerMode === 0) v.push('<span class="bad">静音模式</span>');
+    if (s.ringerMode === 1) v.push('振动模式');
+    lines.push('音量：' + v.join('　｜　'));
+  }
+
+  // 温度/内存/开机时长：都是一次性读取，不额外耗电，但能看出"手机是不是变卡了"
+  var extra = [];
+  if (s.battTemp !== undefined) {
+    var hot = s.battTemp >= 42;
+    extra.push('电池 ' + (hot ? '<span class="bad">' : '<span class="ok">') + s.battTemp + '℃</span>');
+  }
+  if (s.memFreeMB !== undefined) {
+    extra.push('可用内存 ' + s.memFreeMB + ' MB'
+      + (s.memLow ? ' <span class="bad">偏紧</span>' : ''));
+  }
+  if (s.uptimeMin !== undefined) {
+    extra.push('已开机 ' + fmtDur(s.uptimeMin)
+      + (s.uptimeMin > 7 * 1440 ? ' <span class="dim">（很久没重启）</span>' : ''));
+  }
+  if (s.screenOn !== undefined && s.locked !== undefined) {
+    extra.push('屏幕' + (s.screenOn ? '亮着' : '灭着') + (s.locked ? '、已锁' : ''));
+  }
+  if (extra.length) lines.push(extra.join('　'));
+
+  if (s.storageFreeMB !== undefined) {
+    var low = s.storageFreeMB < 1024;
+    lines.push('剩余存储：<span class="' + (low ? 'bad' : 'ok') + '">'
+      + (s.storageFreeMB >= 1024 ? (s.storageFreeMB / 1024).toFixed(1) + ' GB' : s.storageFreeMB + ' MB')
+      + '</span>');
+  }
+  if (s.lockTask !== undefined || s.locateOn !== undefined || s.trackPoints !== undefined) {
+    var parts = [];
+    if (s.lockTask !== undefined) parts.push('锁定任务：' + (s.lockTask ? '开' : '关'));
+    if (s.locateOn !== undefined) parts.push('定位服务：' + (s.locateOn ? '开' : '关'));
+    if (s.trackPoints !== undefined) parts.push('轨迹点：' + s.trackPoints);
+    lines.push(parts.join('　'));
+  }
+  if (s.topApps && s.topApps.length) {
+    var t = [];
+    for (var i = 0; i < s.topApps.length; i++) t.push(s.topApps[i].name + ' ' + s.topApps[i].minutes + ' 分');
+    lines.push('今天常用：' + t.join('、'));
+  }
+
+  if (s.cmdResult) {
+    var cr = s.cmdResult;
+    lines.push('上次远程命令：' + esc(cr.cmd || '') + ' → '
+      + (cr.ok ? '<span class="ok">成功</span>' : '<span class="bad">失败</span>')
+      + '　<span class="dim">' + fmtAgo(cr.at) + '</span>'
+      + '<br><span class="dim">' + esc(cr.msg || '') + '</span>');
+  }
+  if (s.pendingCmds) {
+    lines.push('<span class="dim">还有 ' + s.pendingCmds + ' 条命令在中继排队</span>');
+  }
+
+  if (relayDev) {
+    lines.push('<span class="dim">以上来自中继，最后上报：'
+      + (relayDev.lastSeen ? fmtTime(relayDev.lastSeen) + '（' + fmtAgo(relayDev.lastSeen) + '）' : '还没有上报过')
+      + (relayDev.online ? '　<span class="ok">在线</span>' : '　<span class="bad">已失联</span>')
+      + '</span>');
+  }
+  box.innerHTML = lines.join('<br>');
+}
+
+/* ================= 轨迹（老人端本地记录） ================= */
+function loadTrack() {
+  var e = elder(curId);
+  if (!e) return;
+  toast('正在拉取轨迹…');
+
+  // 中继模式必须问中继要。以前这里不分模式，永远去拼 http://<host>:8899/track?key=，
+  // 中继模式下 host 是空的，于是弹「Failed to parse URL from http://:8899/track?key=」。
+  if (e.mode === 'relay') {
+    var b = (e.base || '').replace(/\/+$/, '');
+    var tk = encodeURIComponent(e.token || '');
+    if (!b || !e.token) { toast('还没配中继地址或令牌'); return; }
+    fetch(b + '/api/track?k=' + tk + '&since=' + (e.lastTrackT || 0), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) { toast('中继没给轨迹（检查令牌）'); return; }
+        var pts = d.points || [];
+        if (!pts.length) {
+          toast('没有新的轨迹点（中继上共 ' + ((e.history || []).length) + ' 个）');
+          return;
+        }
+        var added = mergeTrack(e, pts);
+        saveDB();
+        renderHistory();
+        drawMap(e);
+        toast(added > 0 ? ('合并了 ' + added + ' 个点') : '这些点已经有了');
+      })
+      .catch(function (err) { toast('连不上中继：' + (err.message || err)); });
+    return;
+  }
+
+  var url = apiUrl(e).replace('/loc?', '/track?');
+  fetch(url, { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.ok) { toast('拉取失败'); return; }
+      var pts = d.points || [];
+      if (!pts.length) { toast('老人机还没有记录到轨迹（要等它移动过）'); return; }
+      var added = mergeTrack(e, pts);
+      saveDB();
+      renderHistory();
+      drawMap(e);
+      toast(added > 0 ? ('合并了 ' + added + ' 个点') : '没有新的轨迹点');
+    })
+    .catch(function (err) { toast('连不上：' + (err.message || err)); });
+}
+
+/* ================= 工具 ================= */
+function fmtTime(t) {
+  var d = new Date(t), p = function (n) { return n < 10 ? '0' + n : n; };
+  return (d.getMonth() + 1) + '-' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+/** 只要 时:分，用在「电量 75%（16:40 测）」这种地方 */
+function fmtClock(t) {
+  if (!t) return '';
+  var d = new Date(t), p = function (n) { return n < 10 ? '0' + n : n; };
+  return p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+/** 多久以前：刚刚 / N 分钟前 / N 小时前 / N 天前 */
+function fmtAgo(t) {
+  if (!t) return '';
+  var m = Math.round((Date.now() - t) / 60000);
+  if (m < 2) return '刚刚';
+  if (m < 60) return m + ' 分钟前';
+  var h = Math.round(m / 60);
+  if (h < 24) return h + ' 小时前';
+  return Math.round(h / 24) + ' 天前';
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function mask(k) {
+  if (!k) return '（空）';
+  return k.length <= 2 ? '**' : k.slice(0, 2) + '****';
+}
+function toast(msg) {
+  if (window.Android && Android.toast) Android.toast(msg);
+  else alert(msg);
+}
+function copyText(s) {
+  var ta = document.createElement('textarea');
+  ta.value = s;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); toast('已复制：' + s); } catch (e) { toast(s); }
+  document.body.removeChild(ta);
+}
+
+/* ================= 启动 ================= */
+loadDB();
+setMode('relay');
+initAlerts();
+renderList();
+renderAutoLine();
+syncAlerts();
+if (autoStatusOn) {
+  setTimeout(refreshAllStatus, 1200);   // 先让界面出来，再慢慢同步
+  startAutoStatus();
+}
+</script>
+</body>
+</html>

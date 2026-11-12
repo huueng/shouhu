@@ -1,0 +1,50 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+
+    defaultConfig {
+        applicationId "com.elder.family"
+        minSdkVersion 23
+        targetSdkVersion 29
+        versionCode 17
+        versionName "3.2.1"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("ELDER_KEYSTORE")
+            if (!ksPath) {
+                ksPath = System.getProperty("user.home") + "/.android/debug.keystore"
+            }
+            storeFile file(ksPath)
+            storePassword System.getenv("ELDER_STORE_PASS") ?: "android"
+            keyAlias System.getenv("ELDER_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword System.getenv("ELDER_KEY_PASS") ?: "android"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    // 扫码解析（相机由系统相机代劳，不自己写预览）
+    implementation 'com.google.zxing:core:3.5.3'
+}

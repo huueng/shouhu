@@ -1,0 +1,7 @@
+#!/bin/bash
+# 配置前：确保配置目录存在
+set -u
+
+PKGVAR="${TRIM_PKGVAR:-/var/apps/elderrelay/var}"
+mkdir -p "${PKGVAR}" 2>/dev/null || true
+exit 0

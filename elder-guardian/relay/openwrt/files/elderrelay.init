@@ -1,0 +1,53 @@
+#!/bin/sh /etc/rc.common
+# 守护中继 —— OpenWrt / ImmortalWrt 启动脚本（procd）
+#
+# 只做三件事：按 UCI 配置起进程、挂了自动拉起、日志进 syslog。
+# 具体端口、访问密码、对外地址都在数据目录的 config.json 里（和中继自己的
+# 配置文件是同一份，网页上改完重启即可，不需要动 UCI）。
+
+START=95
+STOP=10
+USE_PROCD=1
+
+PROG=/usr/bin/elderrelay
+
+start_service() {
+	config_load elderrelay
+	local enabled data
+	config_get_bool enabled main enabled 0
+	[ "$enabled" = "1" ] || return 0
+
+	config_get data main data "/etc/elderrelay"
+	config_get repo main repo ""
+
+	[ -x "$PROG" ] || {
+		logger -t elderrelay "找不到 $PROG，安装包可能不完整"
+		return 1
+	}
+
+	mkdir -p "$data" 2>/dev/null
+
+	procd_open_instance
+	procd_set_param command "$PROG"
+	procd_set_param env ELDER_DATA="$data"
+	# 在线检查新版本用（可选）：uci set elderrelay.main.repo='owner/shouhu'
+	[ -n "$repo" ] && procd_set_param env ELDER_UPDATE_REPO="$repo"
+	# 崩溃后 5 秒拉起，最多 5 次；超过就停下，避免死循环刷日志
+	procd_set_param respawn 3600 5 5
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+}
+
+service_triggers() {
+	procd_add_reload_trigger elderrelay
+}
+
+reload_service() {
+	stop
+	start
+}
+
+status_service() {
+	pgrep -f "$PROG" >/dev/null 2>&1 && echo "running" || echo "stopped"
+}

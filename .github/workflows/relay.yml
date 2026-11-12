@@ -1,0 +1,149 @@
+name: relay
+
+# 中继的构建、测试与发布。
+#   · push / PR：跑 go vet + go test，并交叉编译一遍确认能编出来
+#   · 打 tag（relay-v1.15.0）：出各架构二进制 + ipk，附到 Release 上
+#
+# 安卓端（老人端/家人端）需要 Android SDK，暂不放这里，见 docs/ 里的本地打包命令。
+
+on:
+  push:
+    branches: [main]
+    tags: ['relay-v*']
+  pull_request:
+    paths:
+      - 'elder-guardian/relay/**'
+      - 'tools/build-ipk.py'
+      - '.github/workflows/relay.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: elder-guardian/relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: elder-guardian/relay/go.sum
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test ./...
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goarch: amd64
+            goarm: ''
+          - goarch: arm64
+            goarm: ''
+          - goarch: arm
+            goarm: '7'
+          - goarch: mipsle
+            goarm: ''
+    defaults:
+      run:
+        working-directory: elder-guardian/relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: elder-guardian/relay/go.sum
+
+      - name: 计算版本
+        id: ver
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "version=${GITHUB_REF_NAME#relay-v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0-dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 交叉编译
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: '0'
+          GOMIPS: softfloat
+        run: |
+          mkdir -p ../../.build
+          go build -trimpath \
+            -ldflags "-s -w -X main.Version=${{ steps.ver.outputs.version }}" \
+            -o ../../.build/relay-${{ matrix.goarch }} .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relay-${{ matrix.goarch }}
+          path: .build/relay-${{ matrix.goarch }}
+          if-no-files-found: error
+
+  ipk:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/relay-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: .build
+          pattern: relay-*
+          merge-multiple: true
+      - name: 准备 UPX（压到 30%，16MB flash 的路由器靠它）
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq upx-ucl || echo "upx 装不上，退回未压缩版"
+      - name: 打 ipk
+        id: ver
+        run: |
+          V="${GITHUB_REF_NAME#relay-v}"
+          python3 tools/build-ipk.py "$V" arm64 mipsle armv7 --upx
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipk
+          path: dist/*.ipk
+
+  release:
+    needs: [build, ipk]
+    if: startsWith(github.ref, 'refs/tags/relay-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: 整理产物
+        run: |
+          mkdir -p out
+          for f in artifacts/relay-*/relay-*; do
+            cp "$f" "out/$(basename "$f")"
+          done
+          cp artifacts/ipk/*.ipk out/ 2>/dev/null || true
+          ls -lh out
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true
+          body: |
+            中继 ${{ github.ref_name }}
+
+            **升级方式**：备份数据目录（`/etc/elderrelay` 或 Docker 的 `relay-data`）后替换二进制/重装包。
+            中继向后兼容所有已发布的老人端与家人端，升级顺序无所谓。
+
+            | 文件 | 用在哪 |
+            |---|---|
+            | `relay-amd64` / `relay-arm64` | 服务器、NAS、树莓派（裸二进制） |
+            | `elderrelay_*_aarch64_cortex-a53.ipk` | 飞牛 / 路由器的 aarch64 |
+            | `elderrelay_*_mipsel_24kc.ipk` | MT7628 / MT7620 / MT7621 路由器 |
+            | `elderrelay_*_arm_cortex-a7_neon-vfpv4.ipk` | 斐讯 K2P B1 这类 ARMv7 |

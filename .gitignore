@@ -1,0 +1,25 @@
+# 构建产物
+.build/
+.toolchain/
+dist/
+
+# 个人资料 / 调试留档（不进公开仓库）
+资料/
+logs/
+
+# 可执行文件（用 Release 提供，不进仓库）
+*.exe
+
+# Android / Gradle
+elder-guardian/.gradle/
+elder-guardian/_buildtest/
+elder-guardian/build/
+elder-guardian/app/build/
+elder-guardian/family/build/
+elder-guardian/local.properties
+*.iml
+.idea/
+
+# 系统
+.DS_Store
+Thumbs.db

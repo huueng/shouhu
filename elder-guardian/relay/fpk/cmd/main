@@ -1,0 +1,104 @@
+#!/bin/bash
+# 守护中继的生命周期脚本：start / stop / status
+set -u
+
+APP_NAME="elderrelay"
+PKGVAR="${TRIM_PKGVAR:-/var/apps/${APP_NAME}/var}"
+APPDEST="${TRIM_APPDEST:-/var/apps/${APP_NAME}/target}"
+PID_FILE="${PKGVAR}/app.pid"
+LOG_FILE="${PKGVAR}/app.log"
+
+# app.tgz 的展平方式在不同 fnOS 版本上有差异，二进制可能落在
+# <target>/elderrelay 或 <target>/app/elderrelay，两种都认。
+# 内置升级装到 <var>/current/elderrelay；有它就用它，否则用 fpk 里的。
+# 重装 fpk 时 upgrade_callback 会删掉 current/，让新包生效。
+find_bin() {
+  local c
+  for c in "${PKGVAR}/current/elderrelay" "${APPDEST}/elderrelay" "${APPDEST}/app/elderrelay"; do
+    if [ -x "$c" ]; then
+      printf '%s' "$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# 飞牛统一网关：Socket 必须放在 target 下（网关就按这个路径来连）。
+# fnOS 一般会注入 FNNAS_GATEWAY_SOCKET / FNNAS_GATEWAY_PREFIX，
+# 但有的版本不传给生命周期脚本，这里补默认值，两种都能跑。
+FNNAS_GATEWAY_SOCKET="${FNNAS_GATEWAY_SOCKET:-${APPDEST}/app.sock}"
+FNNAS_GATEWAY_PREFIX="${FNNAS_GATEWAY_PREFIX:-/app/elderrelay}"
+export FNNAS_GATEWAY_SOCKET FNNAS_GATEWAY_PREFIX
+
+mkdir -p "${PKGVAR}" 2>/dev/null || true
+
+log_msg() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >>"${LOG_FILE}" 2>/dev/null || true
+}
+
+fail() {
+  log_msg "ERROR: $1"
+  echo "$1" >"${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+  echo "$1" >&2
+  exit 1
+}
+
+read_pid() {
+  [ -f "${PID_FILE}" ] && head -n 1 "${PID_FILE}" | tr -d '[:space:]'
+}
+
+is_running() {
+  local pid
+  pid="$(read_pid)"
+  if [ -n "${pid}" ] && kill -0 "${pid}" 2>/dev/null; then
+    return 0
+  fi
+  rm -f "${PID_FILE}"
+  return 1
+}
+
+start_app() {
+  if is_running; then
+    log_msg "已在运行，跳过启动"
+    return 0
+  fi
+
+  local bin
+  bin="$(find_bin)" || fail "找不到程序文件（已查 ${APPDEST}/elderrelay 与 ${APPDEST}/app/elderrelay），请重新安装应用。"
+
+  ELDER_DATA="${PKGVAR}" nohup "${bin}" >>"${LOG_FILE}" 2>&1 &
+  echo "$!" >"${PID_FILE}"
+  log_msg "已启动，PID $!，程序 ${bin}"
+}
+
+stop_app() {
+  local pid count=0
+  pid="$(read_pid)"
+  if [ -z "${pid}" ] || ! kill -0 "${pid}" 2>/dev/null; then
+    rm -f "${PID_FILE}"
+    return 0
+  fi
+  log_msg "正在停止 PID ${pid}"
+  kill -TERM "${pid}" 2>/dev/null || true
+  while kill -0 "${pid}" 2>/dev/null && [ "${count}" -lt 10 ]; do
+    sleep 1
+    count=$((count + 1))
+  done
+  if kill -0 "${pid}" 2>/dev/null; then
+    log_msg "超时未退出，强制结束"
+    kill -KILL "${pid}" 2>/dev/null || true
+  fi
+  rm -f "${PID_FILE}"
+}
+
+case "${1:-}" in
+  start)  start_app ;;
+  stop)   stop_app ;;
+  status)
+    if is_running; then exit 0; fi
+    exit 3
+    ;;
+  *) fail "未知的运行命令：${1:-空}" ;;
+esac
+
+exit 0

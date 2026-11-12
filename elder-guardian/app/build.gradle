@@ -1,0 +1,60 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+
+    defaultConfig {
+        // 包名保持不变：老机器上已装 1.1（Device Owner），同包名同签名可直接覆盖升级，
+        // 免去解除 DO / 重新激活的麻烦。
+        applicationId "com.elder.launcher"
+        minSdkVersion 23
+        targetSdkVersion 29
+        versionCode 32
+        versionName "2.16"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    // 签名：默认复用本机 debug keystore（与线上 1.1 版本证书一致，可直接覆盖升级）。
+    // 要换成自己的证书时设置环境变量 ELDER_KEYSTORE / ELDER_STORE_PASS / ELDER_KEY_ALIAS / ELDER_KEY_PASS 即可。
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("ELDER_KEYSTORE")
+            if (!ksPath) {
+                ksPath = System.getProperty("user.home") + "/.android/debug.keystore"
+            }
+            storeFile file(ksPath)
+            storePassword System.getenv("ELDER_STORE_PASS") ?: "android"
+            keyAlias System.getenv("ELDER_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword System.getenv("ELDER_KEY_PASS") ?: "android"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            // 关键：release 包不带 android:testOnly，华为纯净模式不会拦「非正式发布版本」
+            signingConfig signingConfigs.release
+        }
+    }
+
+    // 关闭构建期 lint 阻塞，避免无网环境构建失败
+    lintOptions {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    // gson / okhttp 在老工程里从未被引用（天气走 HttpURLConnection），已移除
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    // 二维码：定位服务/传包地址在手机屏幕上展示，家人扫一下就配好
+    implementation 'com.google.zxing:core:3.5.3'
+}

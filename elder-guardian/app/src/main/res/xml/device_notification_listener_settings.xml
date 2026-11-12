@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<notification-listener-settings xmlns:android="http://schemas.android.com/apk/res/android">
+    <setting android:key="enabled" android:value="true" />
+</notification-listener-settings>
