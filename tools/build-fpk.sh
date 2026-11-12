@@ -53,7 +53,10 @@ if [ ! -f "$BIN" ]; then
 fi
 
 echo "== 3/6 生成图标 =="
-python "$ROOT/tools/gen-icon.py" "$ICONS" >/dev/null
+# Linux 上通常只有 python3（CI runner 就没有 python 这个别名），两个都试一下
+PY="$(command -v python3 || command -v python)"
+[ -n "$PY" ] || { echo "找不到 python3/python，无法生成图标"; exit 1; }
+"$PY" "$ROOT/tools/gen-icon.py" "$ICONS" >/dev/null
 cp "$ICONS/ICON.PNG" "$STAGE/ICON.PNG"
 cp "$ICONS/ICON_256.PNG" "$STAGE/ICON_256.PNG"
 cp "$ICONS/ICON.PNG" "$STAGE/app/ui/images/icon_64.png"
