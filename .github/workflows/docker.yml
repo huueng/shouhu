@@ -1,7 +1,7 @@
 name: docker
 
 # 打 tag（relay-v1.15.0）时构建多架构镜像并推到 GHCR：
-#   ghcr.io/<owner>/shouhu-relay:1.15.0 / :latest
+#   ghcr.io/huueng/shouhu-relay:1.15.0 / :latest（owner 取自 github.repository_owner）
 #
 # 首次推送后，到仓库 Settings → Packages 里把镜像可见性设为 public（默认是 private）。
 

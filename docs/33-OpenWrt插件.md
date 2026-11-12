@@ -144,6 +144,23 @@ vi /etc/elderrelay/config.json        # 改 "port"（bind 留空表示监听所�
 中继的端口一直以 `config.json` 为准（和 NAS 上那份是同一个程序、同一套配置），
 UCI 里只放「开关 + 数据目录」，避免两套配置互相打架。
 
+## 在线检查新版本（可选）
+
+中继管理台的「检查新版本」会去 GitHub Releases 看有没有新 tag，**只提示、不自动装**。
+要开这个功能，得告诉它查哪个仓库：
+
+```bash
+uci set elderrelay.main.repo='huueng/shouhu'
+uci commit elderrelay
+/etc/init.d/elderrelay restart
+```
+
+也可以不动 UCI，直接在中继数据目录的 `config.json` 里加 `"update_repo": "huueng/shouhu"`。
+两个都没配时，管理台会显示「未配置更新源」，不影响任何其他功能。
+
+> 为什么不做自动升级：中继跑在别人家的路由器/NAS 上，自动替换一旦失败（下载中断、
+> 架构不对、断电），后果是全家人联系不上老人。宁可手动重装一次。
+
 ## 常用命令
 
 ```bash

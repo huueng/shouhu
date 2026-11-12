@@ -20,7 +20,7 @@ docker run -d \
   -p 8898:8898 \
   -v $PWD/relay-data:/data \
   -e TZ=Asia/Shanghai \
-  ghcr.io/your-name/shouhu-relay:latest
+  ghcr.io/huueng/shouhu-relay:latest
 ```
 
 然后浏览器打开 `http://<服务器IP>:8898`：
@@ -116,5 +116,5 @@ docker build -t shouhu-relay:1.15.0 --build-arg VERSION=1.15.0 elder-guardian/re
 
 # 多平台（amd64 / arm64 / armv7）并推送
 docker login ghcr.io
-IMAGE_PREFIX=ghcr.io/your-name/shouhu-relay deploy/docker/build.sh 1.15.0 --push
+IMAGE_PREFIX=ghcr.io/huueng/shouhu-relay deploy/docker/build.sh 1.15.0 --push
 ```

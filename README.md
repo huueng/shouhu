@@ -79,7 +79,7 @@
 # Docker（最省事）
 docker run -d --name shouhu-relay --restart unless-stopped \
   -p 8898:8898 -v $PWD/relay-data:/data \
-  ghcr.io/your-name/shouhu-relay:latest
+  ghcr.io/huueng/shouhu-relay:latest
 ```
 
 - Docker / Compose：[docs/36-Docker部署.md](docs/36-Docker部署.md)
