@@ -100,14 +100,18 @@ jobs:
           path: .build
           pattern: relay-*
           merge-multiple: true
-      - name: 准备 UPX（压到 30%，16MB flash 的路由器靠它）
+      - name: 准备 UPX（可选，失败也继续）
+        continue-on-error: true
         run: |
-          # 用官方 release 的二进制，比 apt 稳妥（apt 里有时没有 mips 支持）
-          curl -sSL -o /tmp/upx.tgz \
-            https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.gz
-          tar xzf /tmp/upx.tgz -C /tmp
-          sudo mv /tmp/upx-4.2.4-amd64_linux/upx /usr/local/bin/upx
-          upx --version | head -2 || echo "upx 不可用，退回未压缩版"
+          # 三条路依次试，全失败就出未压缩版（6.5MB，16MB 机器会紧张但不影响功能）
+          (sudo apt-get update -qq && sudo apt-get install -y -qq upx-ucl) || true
+          if ! command -v upx >/dev/null 2>&1; then
+            curl -fsSL -o /tmp/upx.tgz \
+              https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.gz || true
+            tar xzf /tmp/upx.tgz -C /tmp || true
+            sudo cp /tmp/upx-4.2.4-amd64_linux/upx /usr/local/bin/upx || true
+          fi
+          upx --version | head -2 || echo "没有可用的 upx，将打未压缩版"
       - name: 打 ipk
         id: ver
         run: |
