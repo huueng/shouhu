@@ -111,8 +111,9 @@ echo "-- 包内结构 --"
 tar -tzf "$OUT"
 echo
 echo "-- 权限（cmd/* 与二进制应为 rwxr-xr-x）--"
-tar -tvzf "$OUT" | grep -E ' cmd/| manifest'
-tar -tvzf "$STAGE/app.tgz" | grep 'app/elderrelay'
+# 这些只是给人看的自检：grep 没匹配到不该让整个打包判失败（脚本是 set -e + pipefail）。
+tar -tvzf "$OUT" | grep -E ' cmd/| manifest' || true
+tar -tvzf "$STAGE/app.tgz" | grep 'elderrelay' || true
 echo
 echo "-- manifest --"
 tar -xzOf "$OUT" manifest
