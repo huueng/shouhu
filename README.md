@@ -11,6 +11,14 @@
 > 第一次接触"服务器、ADB、OpenWrt、DDNS"这些词？
 > 先看 [docs/38-零基础入门](docs/38-零基础入门.md)，全是大白话，不要求你懂技术。
 
+<p align="center">
+  <img src="docs/screenshots/01-老人桌面.png" width="196" alt="老人端桌面">
+  <img src="docs/screenshots/03-守护自检.png" width="196" alt="守护自检">
+  <img src="docs/screenshots/04-位置详情.png" width="196" alt="家人端位置">
+  <img src="docs/screenshots/05-远程命令.png" width="196" alt="远程命令">
+</p>
+<p align="center"><sub>老人端桌面 · 守护自检 · 家人端位置 · 远程命令　（截图中的地址、坐标已打码）</sub></p>
+
 ---
 
 ## 目录
@@ -50,6 +58,12 @@
 
 中继不是必须的：老人端也能直连家人端（局域网/内网穿透），但有了中继，
 老人端只要往一个固定地址上报，家里几台手机都能看，换手机不用改老人端。
+
+中继的管理台长这样（浏览器打开 `http://<地址>:8898` 的「中继页」）：
+
+<p align="center">
+  <img src="docs/screenshots/06-中继管理台.png" width="620" alt="中继管理台">
+</p>
 
 ## 快速开始
 
